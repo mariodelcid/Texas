@@ -993,49 +993,132 @@ const SaleOfDay = ({ worker }) => {
   const [cashGiven, setCashGiven] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [done, setDone] = useState(false);
+  // card confirmation step
+  const [cardConfirm, setCardConfirm] = useState(false);
+  // fullscreen celebration
+  const [celebrate, setCelebrate] = useState(false);
+  const [celebrateAmt, setCelebrateAmt] = useState(0);
+  const [celebrateMethod, setCelebrateMethod] = useState("cash");
 
   const todayStr = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
-  const totalCash = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
-  const totalCard = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
+  const totalCash  = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
+  const totalCard  = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
   const totalSales = totalCash + totalCard;
   const totalOrders = orders.length;
+  const change = parseFloat(cashGiven||0) - parseFloat(amount||0);
 
-  const addSale = () => {
-    if (!amount || isNaN(amount)) return;
+  const commitSale = (method) => {
+    const amt = parseFloat(amount);
     setOrders(o => [...o, {
       id: Date.now(),
       time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
-      amount: parseFloat(amount),
-      method: payMethod,
+      amount: amt,
+      method,
       note: note || "—",
     }]);
-    setDone(true);
-    setTimeout(() => { setPayModal(false); setDone(false); setAmount(""); setNote(""); setCashGiven(""); }, 1800);
+    setCelebrateAmt(amt);
+    setCelebrateMethod(method);
+    setCardConfirm(false);
+    setPayModal(false);
+    setAmount(""); setNote(""); setCashGiven("");
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 3500);
   };
 
-  const change = parseFloat(cashGiven||0) - parseFloat(amount||0);
+  const handleRegister = () => {
+    if (!amount || isNaN(amount)) return;
+    if (payMethod === "card") {
+      setCardConfirm(true); // show card confirmation popup first
+    } else {
+      commitSale("cash");
+    }
+  };
+
+  // Confetti dots
+  const CONFETTI = Array.from({length:30},(_,i)=>({
+    id:i,
+    x: Math.random()*100,
+    delay: Math.random()*1.2,
+    dur: 1.5 + Math.random()*1.5,
+    color:["#E8640A","#FF9A50","#F59E0B","#22C55E","#3B82F6","#ffffff"][Math.floor(Math.random()*6)],
+    size: 8 + Math.random()*12,
+  }));
 
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
+
+      {/* ── FULLSCREEN CELEBRATION ── */}
+      {celebrate && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:999,
+          background:"#0D0D0D",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center",
+          overflow:"hidden",
+        }}>
+          {/* confetti */}
+          {CONFETTI.map(c=>(
+            <div key={c.id} style={{
+              position:"absolute",
+              left:`${c.x}%`,
+              top:-20,
+              width:c.size, height:c.size,
+              borderRadius: c.id%2===0?"50%":"3px",
+              background:c.color,
+              animation:`confettiFall ${c.dur}s ${c.delay}s ease-in forwards`,
+              opacity:0.9,
+            }} />
+          ))}
+          <style>{`
+            @keyframes confettiFall {
+              0%   { transform: translateY(0) rotate(0deg);   opacity:1; }
+              100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+            }
+            @keyframes popIn {
+              0%   { transform: scale(0.4); opacity:0; }
+              60%  { transform: scale(1.12); opacity:1; }
+              100% { transform: scale(1);   opacity:1; }
+            }
+            @keyframes glow {
+              0%,100% { text-shadow: 0 0 40px rgba(232,100,10,0.8); }
+              50%      { text-shadow: 0 0 80px rgba(232,100,10,1), 0 0 120px rgba(255,152,50,0.6); }
+            }
+          `}</style>
+
+          <div style={{ textAlign:"center", padding:"0 16px", animation:"popIn 0.5s ease forwards", position:"relative", zIndex:2 }}>
+            <div style={{ fontSize:"clamp(100px,28vw,220px)", lineHeight:1, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, color:T.orange, animation:"glow 1.5s ease-in-out infinite", letterSpacing:-2 }}>
+              ${parseFloat(celebrateAmt).toFixed(2)}
+            </div>
+            <div style={{ fontSize:"clamp(22px,6vw,52px)", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, color:"#fff", letterSpacing:4, textTransform:"uppercase", marginTop:12 }}>
+              {celebrateMethod === "card" ? "💳 CARD SALE!" : "💵 CASH SALE!"}
+            </div>
+            <div style={{ fontSize:"clamp(14px,3.5vw,22px)", color:T.textSec, marginTop:10, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:2 }}>
+              SALE REGISTERED ✓
+            </div>
+          </div>
+
+          <button onClick={()=>setCelebrate(false)}
+            style={{ position:"absolute", bottom:40, left:"50%", transform:"translateX(-50%)", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", borderRadius:30, padding:"12px 32px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16, cursor:"pointer", letterSpacing:1, zIndex:3 }}>
+            DISMISS
+          </button>
+        </div>
+      )}
+
       <div style={{ marginBottom:20 }}>
         <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>SALE OF THE DAY</h1>
         <p style={{ color:T.textSec, fontSize:13 }}>{todayStr}</p>
       </div>
 
-      {/* KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:24 }}>
         <KPI label="Total Sales" value={`$${totalSales.toFixed(2)}`} sub={`${totalOrders} orders`} icon="💰" />
         <KPI label="Cash" value={`$${totalCash.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="cash").length} orders`} icon="💵" color={T.green} />
         <KPI label="Card" value={`$${totalCard.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="card").length} orders`} icon="💳" color={T.blue} />
       </div>
 
-      {/* Add sale button */}
       <Btn onClick={()=>setPayModal(true)} size="lg" style={{ width:"100%", marginBottom:20 }}>
         + Register Sale
       </Btn>
 
-      {/* Orders list */}
       {orders.length === 0 ? (
         <Card style={{ textAlign:"center", padding:40 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🧾</div>
@@ -1055,7 +1138,7 @@ const SaleOfDay = ({ worker }) => {
             <tbody>
               {[...orders].reverse().map((o,i)=>(
                 <tr key={o.id} style={{ borderTop:`1px solid ${T.border}`, animation:"slideIn 0.2s ease" }}>
-                  <td style={{ padding:"11px 14px", color:T.textDim, fontSize:12 }}>{orders.length - i}</td>
+                  <td style={{ padding:"11px 14px", color:T.textDim, fontSize:12 }}>{orders.length-i}</td>
                   <td style={{ padding:"11px 14px", color:T.textSec, fontSize:13 }}>{o.time}</td>
                   <td style={{ padding:"11px 14px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16 }}>${o.amount.toFixed(2)}</td>
                   <td style={{ padding:"11px 14px" }}><Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge></td>
@@ -1074,45 +1157,60 @@ const SaleOfDay = ({ worker }) => {
         </Card>
       )}
 
-      {/* Register sale modal */}
+      {/* ── REGISTER SALE MODAL ── */}
       {payModal && (
-        <Modal onClose={()=>!done&&setPayModal(false)}>
-          {done ? (
-            <div style={{ textAlign:"center", padding:"20px 0" }}>
-              <div style={{ fontSize:52 }}>✅</div>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:24, color:T.green, marginTop:10 }}>SALE REGISTERED!</div>
-            </div>
-          ) : (
+        <Modal onClose={()=>setPayModal(false)}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:T.text, marginBottom:18 }}>REGISTER SALE</div>
+          <Input label="Amount ($)" value={amount} onChange={setAmount} type="number" placeholder="0.00" />
+          <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+            {["cash","card"].map(m=>(
+              <button key={m} onClick={()=>setPayMethod(m)}
+                style={{ flex:1, padding:"14px", borderRadius:8, border:`2px solid ${payMethod===m?T.orange:T.border}`, background:payMethod===m?T.orangeDim:T.elevated, color:payMethod===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                {m==="cash"?"💵 Cash":"💳 Card"}
+              </button>
+            ))}
+          </div>
+          {payMethod==="cash" && amount && (
             <>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:T.text, marginBottom:18 }}>REGISTER SALE</div>
-              <Input label="Amount ($)" value={amount} onChange={setAmount} type="number" placeholder="0.00" />
-              <div style={{ display:"flex", gap:10, marginBottom:16 }}>
-                {["cash","card"].map(m=>(
-                  <button key={m} onClick={()=>setPayMethod(m)}
-                    style={{ flex:1, padding:"12px", borderRadius:8, border:`2px solid ${payMethod===m?T.orange:T.border}`, background:payMethod===m?T.orangeDim:T.elevated, color:payMethod===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:15, cursor:"pointer", textTransform:"uppercase" }}>
-                    {m==="cash"?"💵 Cash":"💳 Card"}
-                  </button>
-                ))}
-              </div>
-              {payMethod==="cash" && amount && (
-                <>
-                  <Input label="Cash Given" value={cashGiven} onChange={setCashGiven} type="number" placeholder="0.00" />
-                  {cashGiven && (
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, background:change>=0?T.orangeDim:"rgba(239,68,68,0.15)", padding:"10px 14px", borderRadius:6 }}>
-                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textSec, fontWeight:700 }}>CHANGE</span>
-                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18, color:change>=0?T.green:T.red }}>${Math.abs(change).toFixed(2)}</span>
-                    </div>
-                  )}
-                </>
+              <Input label="Cash Given" value={cashGiven} onChange={setCashGiven} type="number" placeholder="0.00" />
+              {cashGiven && (
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, background:change>=0?T.orangeDim:"rgba(239,68,68,0.15)", padding:"12px 16px", borderRadius:8 }}>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textSec, fontWeight:700, fontSize:16 }}>CHANGE</span>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:change>=0?T.green:T.red }}>${Math.abs(change).toFixed(2)}</span>
+                </div>
               )}
-              <Input label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. Elote chico x2" />
-              <div style={{ display:"flex", gap:10, marginTop:4 }}>
-                <Btn onClick={()=>setPayModal(false)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
-                <Btn onClick={addSale} disabled={!amount} style={{ flex:2 }}>Register</Btn>
-              </div>
             </>
           )}
+          <Input label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. Elote chico x2" />
+          <div style={{ display:"flex", gap:10, marginTop:4 }}>
+            <Btn onClick={()=>setPayModal(false)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+            <Btn onClick={handleRegister} disabled={!amount} style={{ flex:2 }}>Complete Sale</Btn>
+          </div>
         </Modal>
+      )}
+
+      {/* ── CARD CONFIRMATION POPUP ── */}
+      {cardConfirm && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, padding:20 }}>
+          <div style={{ background:T.card, border:`2px solid ${T.blue}`, borderRadius:20, padding:"36px 28px", width:"100%", maxWidth:380, textAlign:"center", animation:"scaleIn 0.25s ease" }}>
+            <div style={{ fontSize:56, marginBottom:12 }}>💳</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:26, color:T.text, marginBottom:8 }}>CONFIRM CARD</div>
+            <div style={{ color:T.textSec, fontSize:15, fontFamily:"'Nunito',sans-serif", marginBottom:6 }}>Has the card payment been processed?</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:42, color:T.blue, margin:"16px 0" }}>
+              ${parseFloat(amount).toFixed(2)}
+            </div>
+            <div style={{ display:"flex", gap:12, marginTop:8 }}>
+              <button onClick={()=>setCardConfirm(false)}
+                style={{ flex:1, padding:"16px", borderRadius:10, border:`2px solid ${T.border}`, background:T.elevated, color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                ✗ NO
+              </button>
+              <button onClick={()=>commitSale("card")}
+                style={{ flex:2, padding:"16px", borderRadius:10, border:"none", background:T.blue, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:17, cursor:"pointer", textTransform:"uppercase", boxShadow:"0 4px 20px rgba(59,130,246,0.4)", WebkitTapHighlightColor:"transparent" }}>
+                ✓ YES, PROCESSED
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
