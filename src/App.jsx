@@ -999,10 +999,10 @@ const Reports = () => {
 };
 
 /* ─── USERS ──────────────────────────────────────────────── */
-const WORKERS_KEY   = "lokos_workers_v1";
-const PRODUCTS_KEY  = "lokos_products_v1";
-const INGR_KEY      = "lokos_ingredients_v1";
-const SALES_DAY_KEY = "lokos_sales_day_v1";
+const WORKERS_KEY   = "lokos_workers_v3";
+const PRODUCTS_KEY  = "lokos_products_v3";
+const INGR_KEY      = "lokos_ingredients_v3";
+const SALES_DAY_KEY = "lokos_sales_day_v3";
 
 const Users = () => {
   const isMobile = useIsMobile();
@@ -1124,7 +1124,7 @@ const Users = () => {
 /* ─── SALE OF THE DAY ────────────────────────────────────── */
 const SaleOfDay = ({ worker, salesDay, persistSalesDay }) => {
   const isMobile = useIsMobile();
-  const orders = salesDay;
+  const orders = Array.isArray(salesDay) ? salesDay : [];
   const setOrders = persistSalesDay;
   const [payModal, setPayModal] = useState(false);
   const [payMethod, setPayMethod] = useState("cash");
@@ -1612,18 +1612,19 @@ const SalesMgr = ({ salesDay, persistSalesDay }) => {
   const [delConfirm, setDelConfirm] = useState(null);
   const [form, setForm] = useState({ amount:"", method:"cash", note:"" });
 
-  const totalCash  = salesDay.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
-  const totalCard  = salesDay.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
+  const safeDay = Array.isArray(salesDay) ? salesDay : [];
+  const totalCash  = safeDay.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
+  const totalCard  = safeDay.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
   const totalSales = totalCash + totalCard;
 
   const saveEdit = () => {
-    persistSalesDay(salesDay.map(o => o.id===editModal.id
+    persistSalesDay(safeDay.map(o => o.id===editModal.id
       ? { ...o, amount:parseFloat(form.amount)||0, method:form.method, note:form.note }
       : o
     ));
     setEditModal(null);
   };
-  const del = (id) => { persistSalesDay(salesDay.filter(o=>o.id!==id)); setDelConfirm(null); };
+  const del = (id) => { persistSalesDay(safeDay.filter(o=>o.id!==id)); setDelConfirm(null); };
 
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
@@ -1636,7 +1637,7 @@ const SalesMgr = ({ salesDay, persistSalesDay }) => {
         <KPI label="Cash"  value={`$${totalCash.toFixed(2)}`} icon="💵" color={T.green} />
         <KPI label="Card"  value={`$${totalCard.toFixed(2)}`} icon="💳" color={T.blue} />
       </div>
-      {salesDay.length === 0 ? (
+      {safeDay.length === 0 ? (
         <Card style={{ textAlign:"center", padding:40 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🗃️</div>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textDim, letterSpacing:1, fontSize:16 }}>NO SALES TODAY</div>
@@ -1652,9 +1653,9 @@ const SalesMgr = ({ salesDay, persistSalesDay }) => {
               </tr>
             </thead>
             <tbody>
-              {[...salesDay].reverse().map((o,i)=>(
+              {[...safeDay].reverse().map((o,i)=>(
                 <tr key={o.id} style={{ borderTop:`1px solid ${T.border}` }}>
-                  <td style={{ padding:"11px 14px",color:T.textDim,fontSize:12 }}>{salesDay.length-i}</td>
+                  <td style={{ padding:"11px 14px",color:T.textDim,fontSize:12 }}>{safeDay.length-i}</td>
                   <td style={{ padding:"11px 14px",color:T.textSec,fontSize:13 }}>{o.time}</td>
                   <td style={{ padding:"11px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16 }}>${o.amount.toFixed(2)}</td>
                   <td style={{ padding:"11px 14px" }}><Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge></td>
@@ -1721,55 +1722,64 @@ export default function App() {
   const [screen, setScreen] = useState("dashboard");
   const isMobile = useIsMobile();
 
-  // ── shared state persisted across sessions ──
+  // ── shared state — safe lazy init, stale data is silently discarded ──
   const [products, setProducts] = useState(() => {
-    try { const s=localStorage.getItem(PRODUCTS_KEY); return s?JSON.parse(s):MENU_ITEMS; } catch { return MENU_ITEMS; }
+    try {
+      const s = localStorage.getItem(PRODUCTS_KEY);
+      const parsed = s ? JSON.parse(s) : null;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : MENU_ITEMS;
+    } catch { return MENU_ITEMS; }
   });
   const [ingredients, setIngredients] = useState(() => {
-    try { const s=localStorage.getItem(INGR_KEY); return s?JSON.parse(s):INVENTORY; } catch { return INVENTORY; }
+    try {
+      const s = localStorage.getItem(INGR_KEY);
+      const parsed = s ? JSON.parse(s) : null;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INVENTORY;
+    } catch { return INVENTORY; }
   });
   const [salesDay, setSalesDay] = useState(() => {
     try {
-      const s=localStorage.getItem(SALES_DAY_KEY);
-      const saved=s?JSON.parse(s):null;
-      const today=new Date().toDateString();
-      return saved&&saved.date===today?saved.orders:[];
+      const s = localStorage.getItem(SALES_DAY_KEY);
+      const saved = s ? JSON.parse(s) : null;
+      const today = new Date().toDateString();
+      return saved && saved.date === today && Array.isArray(saved.orders) ? saved.orders : [];
     } catch { return []; }
   });
 
-  const persistProducts = (p) => { setProducts(p); try{localStorage.setItem(PRODUCTS_KEY,JSON.stringify(p));}catch{} };
-  const persistIngredients = (i) => { setIngredients(i); try{localStorage.setItem(INGR_KEY,JSON.stringify(i));}catch{} };
-  const persistSalesDay = (orders) => {
-    setSalesDay(orders);
-    try{localStorage.setItem(SALES_DAY_KEY,JSON.stringify({date:new Date().toDateString(),orders}));}catch{}
-  };
+  const persistProducts    = (p) => { setProducts(p);    try{localStorage.setItem(PRODUCTS_KEY, JSON.stringify(p));}catch{} };
+  const persistIngredients = (i) => { setIngredients(i); try{localStorage.setItem(INGR_KEY,     JSON.stringify(i));}catch{} };
+  const persistSalesDay    = (o) => { setSalesDay(o);    try{localStorage.setItem(SALES_DAY_KEY, JSON.stringify({date:new Date().toDateString(),orders:o}));}catch{} };
 
   const handleLogin = (role, worker) => {
     setAuth({ role, worker });
-    setScreen(role==="admin"?"dashboard":"pos");
+    setScreen(role === "admin" ? "dashboard" : "pos");
   };
 
   if (!auth) return <Login onLogin={handleLogin} />;
 
-  const SCREENS = {
-    dashboard: <Dashboard />,
-    pos:       <POS products={products} />,
-    products:  <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />,
-    ingrmgr:   <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />,
-    inventory: <Inventory />,
-    compras:   <Compras />,
-    clock:     <Clock />,
-    reports:   <Reports />,
-    users:     <Users />,
-    salesmgr:  <SalesMgr salesDay={salesDay} persistSalesDay={persistSalesDay} />,
-    saleday:   <SaleOfDay worker={auth.worker} salesDay={salesDay} persistSalesDay={persistSalesDay} />,
+  // Render ONLY the active screen — avoids one broken component crashing everything
+  const renderScreen = () => {
+    switch(screen) {
+      case "dashboard": return <Dashboard />;
+      case "pos":       return <POS products={products} />;
+      case "products":  return <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />;
+      case "ingrmgr":   return <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />;
+      case "inventory": return <Inventory />;
+      case "compras":   return <Compras />;
+      case "clock":     return <Clock />;
+      case "reports":   return <Reports />;
+      case "users":     return <Users />;
+      case "salesmgr":  return <SalesMgr salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
+      case "saleday":   return <SaleOfDay worker={auth.worker} salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
+      default:          return <Dashboard />;
+    }
   };
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:T.bg, fontFamily:"'Nunito',sans-serif" }}>
       {!isMobile && <Sidebar screen={screen} setScreen={setScreen} userRole={auth.role} onLogout={()=>{setAuth(null);setScreen("dashboard");}} />}
       <div style={{ flex:1, overflowX:"hidden", minHeight:"100vh" }}>
-        {SCREENS[screen]||<Dashboard />}
+        {renderScreen()}
       </div>
       {isMobile && <Sidebar screen={screen} setScreen={setScreen} userRole={auth.role} onLogout={()=>{setAuth(null);setScreen("dashboard");}} />}
     </div>
