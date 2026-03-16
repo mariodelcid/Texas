@@ -241,11 +241,14 @@ const NAV_ITEMS = [
   { id:"clock",     label:"Clock",     icon:"⏱"  },
   { id:"reports",   label:"Reports",   icon:"📈" },
   { id:"users",     label:"Team",      icon:"👥" },
+  { id:"saleday",   label:"My Day",    icon:"💵" },
 ];
 
 const Sidebar = ({ screen, setScreen, userRole, onLogout }) => {
   const isMobile = useIsMobile();
-  const items = userRole === "worker" ? [NAV_ITEMS[1], NAV_ITEMS[4]] : NAV_ITEMS;
+  const items = userRole === "worker"
+    ? [NAV_ITEMS[1], NAV_ITEMS[4], NAV_ITEMS[7]]
+    : NAV_ITEMS.slice(0, 7);
 
   if (isMobile) return (
     <div style={{ position:"fixed", bottom:0, left:0, right:0, background:T.surface, borderTop:`1px solid ${T.border}`, display:"flex", alignItems:"center", zIndex:100, height:60 }}>
@@ -981,6 +984,140 @@ const Users = () => {
   );
 };
 
+/* ─── SALE OF THE DAY ────────────────────────────────────── */
+const SaleOfDay = ({ worker }) => {
+  const isMobile = useIsMobile();
+  const [orders, setOrders] = useState([]);
+  const [payModal, setPayModal] = useState(false);
+  const [payMethod, setPayMethod] = useState("cash");
+  const [cashGiven, setCashGiven] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
+
+  const todayStr = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+  const totalCash = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
+  const totalCard = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
+  const totalSales = totalCash + totalCard;
+  const totalOrders = orders.length;
+
+  const addSale = () => {
+    if (!amount || isNaN(amount)) return;
+    setOrders(o => [...o, {
+      id: Date.now(),
+      time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
+      amount: parseFloat(amount),
+      method: payMethod,
+      note: note || "—",
+    }]);
+    setDone(true);
+    setTimeout(() => { setPayModal(false); setDone(false); setAmount(""); setNote(""); setCashGiven(""); }, 1800);
+  };
+
+  const change = parseFloat(cashGiven||0) - parseFloat(amount||0);
+
+  return (
+    <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
+      <div style={{ marginBottom:20 }}>
+        <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>SALE OF THE DAY</h1>
+        <p style={{ color:T.textSec, fontSize:13 }}>{todayStr}</p>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:24 }}>
+        <KPI label="Total Sales" value={`$${totalSales.toFixed(2)}`} sub={`${totalOrders} orders`} icon="💰" />
+        <KPI label="Cash" value={`$${totalCash.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="cash").length} orders`} icon="💵" color={T.green} />
+        <KPI label="Card" value={`$${totalCard.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="card").length} orders`} icon="💳" color={T.blue} />
+      </div>
+
+      {/* Add sale button */}
+      <Btn onClick={()=>setPayModal(true)} size="lg" style={{ width:"100%", marginBottom:20 }}>
+        + Register Sale
+      </Btn>
+
+      {/* Orders list */}
+      {orders.length === 0 ? (
+        <Card style={{ textAlign:"center", padding:40 }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🧾</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textDim, letterSpacing:1, fontSize:16 }}>NO SALES YET TODAY</div>
+        </Card>
+      ) : (
+        <Card style={{ padding:0, overflow:"hidden" }}>
+          <div style={{ padding:"14px 18px 10px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, textTransform:"uppercase" }}>Today's Orders</div>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ background:T.elevated }}>
+                {["#","Time","Amount","Method","Note"].map(h=>(
+                  <th key={h} style={{ textAlign:"left", padding:"9px 14px", color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...orders].reverse().map((o,i)=>(
+                <tr key={o.id} style={{ borderTop:`1px solid ${T.border}`, animation:"slideIn 0.2s ease" }}>
+                  <td style={{ padding:"11px 14px", color:T.textDim, fontSize:12 }}>{orders.length - i}</td>
+                  <td style={{ padding:"11px 14px", color:T.textSec, fontSize:13 }}>{o.time}</td>
+                  <td style={{ padding:"11px 14px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16 }}>${o.amount.toFixed(2)}</td>
+                  <td style={{ padding:"11px 14px" }}><Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge></td>
+                  <td style={{ padding:"11px 14px", color:T.textSec, fontSize:13 }}>{o.note}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background:T.elevated, borderTop:`2px solid ${T.border}` }}>
+                <td colSpan={2} style={{ padding:"12px 14px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, color:T.text, textTransform:"uppercase" }}>Total</td>
+                <td style={{ padding:"12px 14px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18 }}>${totalSales.toFixed(2)}</td>
+                <td colSpan={2} style={{ padding:"12px 14px", color:T.textSec, fontSize:12 }}>{totalOrders} orders · ${totalOrders>0?(totalSales/totalOrders).toFixed(2):0} avg</td>
+              </tr>
+            </tfoot>
+          </table>
+        </Card>
+      )}
+
+      {/* Register sale modal */}
+      {payModal && (
+        <Modal onClose={()=>!done&&setPayModal(false)}>
+          {done ? (
+            <div style={{ textAlign:"center", padding:"20px 0" }}>
+              <div style={{ fontSize:52 }}>✅</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:24, color:T.green, marginTop:10 }}>SALE REGISTERED!</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:T.text, marginBottom:18 }}>REGISTER SALE</div>
+              <Input label="Amount ($)" value={amount} onChange={setAmount} type="number" placeholder="0.00" />
+              <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+                {["cash","card"].map(m=>(
+                  <button key={m} onClick={()=>setPayMethod(m)}
+                    style={{ flex:1, padding:"12px", borderRadius:8, border:`2px solid ${payMethod===m?T.orange:T.border}`, background:payMethod===m?T.orangeDim:T.elevated, color:payMethod===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:15, cursor:"pointer", textTransform:"uppercase" }}>
+                    {m==="cash"?"💵 Cash":"💳 Card"}
+                  </button>
+                ))}
+              </div>
+              {payMethod==="cash" && amount && (
+                <>
+                  <Input label="Cash Given" value={cashGiven} onChange={setCashGiven} type="number" placeholder="0.00" />
+                  {cashGiven && (
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, background:change>=0?T.orangeDim:"rgba(239,68,68,0.15)", padding:"10px 14px", borderRadius:6 }}>
+                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textSec, fontWeight:700 }}>CHANGE</span>
+                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18, color:change>=0?T.green:T.red }}>${Math.abs(change).toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <Input label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. Elote chico x2" />
+              <div style={{ display:"flex", gap:10, marginTop:4 }}>
+                <Btn onClick={()=>setPayModal(false)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+                <Btn onClick={addSale} disabled={!amount} style={{ flex:2 }}>Register</Btn>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+    </div>
+  );
+};
+
 /* ─── APP ROOT ───────────────────────────────────────────── */
 export default function App() {
   const [auth, setAuth] = useState(null);
@@ -994,7 +1131,7 @@ export default function App() {
 
   if (!auth) return <Login onLogin={handleLogin} />;
 
-  const SCREENS = { dashboard:<Dashboard />, pos:<POS />, inventory:<Inventory />, compras:<Compras />, clock:<Clock />, reports:<Reports />, users:<Users /> };
+  const SCREENS = { dashboard:<Dashboard />, pos:<POS />, inventory:<Inventory />, compras:<Compras />, clock:<Clock />, reports:<Reports />, users:<Users />, saleday:<SaleOfDay worker={auth.worker} /> };
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:T.bg, fontFamily:"'Nunito',sans-serif" }}>
