@@ -1354,6 +1354,367 @@ const SaleOfDay = ({ worker, salesDay, persistSalesDay }) => {
   );
 };
 
+/* ─── PRODUCTS MANAGER (ADMIN) ───────────────────────────── */
+const CATEGORY_OPTIONS = ["Elotes","Sopas","Crepas","Drinks","Malteadas","Postres","Snacks"];
+const EMOJI_OPTIONS    = ["🌽","🔥","🫓","🌮","🍜","🥞","🍓","🧀","🥭","🍉","🍍","🧋","☕","🥤","🐉","🥥","🥛","🍮","🍧","🍰","🌶️","🐂","🟡","🍺","🥗","🫙","🍖"];
+
+const ProductsMgr = ({ products, persistProducts, ingredients }) => {
+  const isMobile = useIsMobile();
+  const blank = { name:"", cat:"Elotes", price:"", emoji:"🌽", desc:"", bom:[] };
+  const [modal, setModal]   = useState(null);
+  const [delConfirm, setDelConfirm] = useState(null);
+  const [form, setForm] = useState(blank);
+  const [bomLine, setBomLine] = useState({ name:"", qty:"", unit:"oz", cost:"" });
+
+  const save = () => {
+    if (!form.name.trim() || !form.price) return;
+    const item = { ...form, price: parseFloat(form.price), id: modal==="add" ? Date.now() : modal.id, stock: 30 };
+    const updated = modal==="add" ? [...products, item] : products.map(p => p.id===modal.id ? item : p);
+    persistProducts(updated); setModal(null);
+  };
+  const del = (id) => { persistProducts(products.filter(p=>p.id!==id)); setDelConfirm(null); };
+  const addBomLine = () => {
+    if (!bomLine.name.trim()) return;
+    setForm(f=>({...f, bom:[...(f.bom||[]), {...bomLine, qty:parseFloat(bomLine.qty)||1, cost:parseFloat(bomLine.cost)||0}]}));
+    setBomLine({ name:"", qty:"", unit:"oz", cost:"" });
+  };
+
+  return (
+    <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>PRODUCTS</h1>
+          <p style={{ color:T.textSec, fontSize:13 }}>{products.length} items · changes show in POS immediately</p>
+        </div>
+        <Btn onClick={()=>{ setForm(blank); setModal("add"); }}>+ Add Product</Btn>
+      </div>
+      {CATEGORY_OPTIONS.filter(cat=>products.some(p=>p.cat===cat)).map(cat=>(
+        <div key={cat} style={{ marginBottom:24 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, color:T.orange, letterSpacing:2, textTransform:"uppercase", marginBottom:10 }}>{cat}</div>
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:10 }}>
+            {products.filter(p=>p.cat===cat).map(p=>(
+              <Card key={p.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px" }}>
+                <div style={{ fontSize:28, flexShrink:0 }}>{p.emoji}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ color:T.text, fontWeight:700, fontSize:14 }}>{p.name}</div>
+                  <div style={{ color:T.textSec, fontSize:12, marginTop:2 }}>{p.desc||"—"}</div>
+                  {p.bom&&p.bom.length>0&&<div style={{ color:T.textDim, fontSize:11, marginTop:2 }}>BOM: {p.bom.map(b=>b.name).join(", ")}</div>}
+                </div>
+                <div style={{ textAlign:"right", flexShrink:0 }}>
+                  <div style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20 }}>${parseFloat(p.price).toFixed(2)}</div>
+                  <div style={{ display:"flex", gap:6, marginTop:6, justifyContent:"flex-end" }}>
+                    <Btn size="sm" variant="ghost" onClick={()=>{ setForm({...p, price:String(p.price), bom:p.bom||[]}); setModal(p); }}>Edit</Btn>
+                    <Btn size="sm" variant="danger" onClick={()=>setDelConfirm(p)}>Del</Btn>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+      {modal && (
+        <Modal onClose={()=>setModal(null)}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20, color:T.text, marginBottom:16 }}>{modal==="add"?"ADD PRODUCT":"EDIT PRODUCT"}</div>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:10 }}>
+            <Input label="Name *" value={form.name} onChange={v=>setForm(f=>({...f,name:v}))} placeholder="e.g. Elote Grande" />
+            <Input label="Price ($) *" type="number" value={form.price} onChange={v=>setForm(f=>({...f,price:v}))} placeholder="0.00" />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+            <div>
+              <label style={{ display:"block",color:T.textSec,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",marginBottom:5 }}>Category</label>
+              <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))} style={{ width:"100%",background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"10px",color:T.text,fontSize:13,outline:"none" }}>
+                {CATEGORY_OPTIONS.map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display:"block",color:T.textSec,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",marginBottom:5 }}>Emoji</label>
+              <select value={form.emoji} onChange={e=>setForm(f=>({...f,emoji:e.target.value}))} style={{ width:"100%",background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"10px",color:T.text,fontSize:18,outline:"none" }}>
+                {EMOJI_OPTIONS.map(e=><option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+          </div>
+          <Input label="Description" value={form.desc||""} onChange={v=>setForm(f=>({...f,desc:v}))} placeholder="Short description" />
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:12, color:T.orange, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Bill of Materials</div>
+            {(form.bom||[]).map((b,i)=>(
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6, background:T.elevated, borderRadius:6, padding:"6px 10px" }}>
+                <span style={{ flex:1, color:T.text, fontSize:13 }}>{b.name}</span>
+                <span style={{ color:T.textSec, fontSize:12 }}>{b.qty} {b.unit}</span>
+                <span style={{ color:T.orange, fontSize:12, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700 }}>${parseFloat(b.cost||0).toFixed(3)}</span>
+                <button onClick={()=>setForm(f=>({...f,bom:f.bom.filter((_,j)=>j!==i)}))} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14 }}>✕</button>
+              </div>
+            ))}
+            <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr auto", gap:6, marginTop:8 }}>
+              <input value={bomLine.name} onChange={e=>setBomLine(b=>({...b,name:e.target.value}))} placeholder="Ingredient" style={{ background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"7px 8px",color:T.text,fontSize:12,outline:"none" }} />
+              <input value={bomLine.qty} onChange={e=>setBomLine(b=>({...b,qty:e.target.value}))} placeholder="Qty" type="number" style={{ background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"7px 6px",color:T.text,fontSize:12,outline:"none" }} />
+              <select value={bomLine.unit} onChange={e=>setBomLine(b=>({...b,unit:e.target.value}))} style={{ background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"7px 4px",color:T.text,fontSize:12,outline:"none" }}>
+                {["oz","unit","g","lb","tsp","tbsp","cup"].map(u=><option key={u}>{u}</option>)}
+              </select>
+              <input value={bomLine.cost} onChange={e=>setBomLine(b=>({...b,cost:e.target.value}))} placeholder="$/unit" type="number" style={{ background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"7px 6px",color:T.text,fontSize:12,outline:"none" }} />
+              <button onClick={addBomLine} style={{ background:T.orange,border:"none",borderRadius:6,color:"#fff",padding:"7px 10px",cursor:"pointer",fontWeight:700,fontSize:14 }}>+</button>
+            </div>
+          </div>
+          {(!form.name.trim()||!form.price)&&<div style={{ color:T.yellow,fontSize:12,marginBottom:10 }}>⚠ Name and price required</div>}
+          <div style={{ display:"flex",gap:10,marginTop:4 }}>
+            <Btn onClick={()=>setModal(null)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+            <Btn onClick={save} disabled={!form.name.trim()||!form.price} style={{ flex:2 }}>Save Product</Btn>
+          </div>
+        </Modal>
+      )}
+      {delConfirm && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:20 }}>
+          <div style={{ background:T.card,border:`2px solid ${T.red}`,borderRadius:16,padding:"28px 24px",width:"100%",maxWidth:340,textAlign:"center",animation:"scaleIn 0.2s ease" }}>
+            <div style={{ fontSize:40,marginBottom:10 }}>🗑️</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:6 }}>DELETE PRODUCT?</div>
+            <div style={{ color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:18 }}>{delConfirm.emoji} {delConfirm.name}</div>
+            <div style={{ display:"flex",gap:10 }}>
+              <button onClick={()=>setDelConfirm(null)} style={{ flex:1,padding:"14px",borderRadius:10,border:`2px solid ${T.border}`,background:T.elevated,color:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Cancel</button>
+              <button onClick={()=>del(delConfirm.id)} style={{ flex:2,padding:"14px",borderRadius:10,border:"none",background:T.red,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── INGREDIENTS MANAGER (ADMIN) ────────────────────────── */
+const IngrMgr = ({ ingredients, persistIngredients }) => {
+  const isMobile = useIsMobile();
+  const blank = { item:"", unit:"oz", stock:0, minStock:0, cost:0, supplier:"" };
+  const [modal, setModal]   = useState(null);
+  const [delConfirm, setDelConfirm] = useState(null);
+  const [form, setForm] = useState(blank);
+  const [search, setSearch] = useState("");
+
+  const filtered = ingredients.filter(i =>
+    i.item.toLowerCase().includes(search.toLowerCase()) ||
+    (i.supplier||"").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const save = () => {
+    if (!form.item.trim()) return;
+    const row = { ...form, id: modal==="add"?Date.now():modal.id, cost:parseFloat(form.cost)||0, stock:parseInt(form.stock)||0, minStock:parseInt(form.minStock)||0 };
+    const updated = modal==="add" ? [...ingredients, row] : ingredients.map(x=>x.id===modal.id?row:x);
+    persistIngredients(updated); setModal(null);
+  };
+  const del = (id) => { persistIngredients(ingredients.filter(i=>i.id!==id)); setDelConfirm(null); };
+
+  return (
+    <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>INGREDIENTES</h1>
+          <p style={{ color:T.textSec, fontSize:13 }}>{ingredients.length} items · {ingredients.filter(i=>i.stock<=i.minStock).length} low stock</p>
+        </div>
+        <Btn onClick={()=>{ setForm(blank); setModal("add"); }}>+ Add</Btn>
+      </div>
+      <input placeholder="🔍 Search ingredient or vendor..." value={search} onChange={e=>setSearch(e.target.value)}
+        style={{ width:"100%",background:T.elevated,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,fontFamily:"'Nunito',sans-serif",outline:"none",marginBottom:16 }} />
+      {isMobile ? (
+        <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+          {filtered.map(item=>{
+            const low=item.stock<=item.minStock;
+            return (
+              <Card key={item.id} style={{ padding:"14px 16px" }}>
+                <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ color:T.text,fontWeight:600,fontSize:14 }}>{item.item}</div>
+                    <div style={{ color:T.textSec,fontSize:12,marginTop:2 }}>{item.supplier||"—"} · ${parseFloat(item.cost||0).toFixed(2)}/{item.unit}</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:low?T.red:T.green }}>{item.stock}</div>
+                    <Badge color={low?"red":"green"}>{low?"Low":"OK"}</Badge>
+                  </div>
+                </div>
+                <div style={{ display:"flex",gap:8,marginTop:10 }}>
+                  <Btn size="sm" variant="ghost" style={{ flex:1 }} onClick={()=>{ setForm({...item,cost:String(item.cost||0)}); setModal(item); }}>Edit</Btn>
+                  <Btn size="sm" variant="danger" style={{ flex:1 }} onClick={()=>setDelConfirm(item)}>Delete</Btn>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card style={{ padding:0,overflow:"hidden" }}>
+          <table style={{ width:"100%",borderCollapse:"collapse" }}>
+            <thead><tr style={{ background:T.elevated }}>{["Ingredient","Unit","Stock","Min","Cost/Unit","Supplier","Status",""].map(h=>(
+              <th key={h} style={{ textAlign:"left",padding:"11px 14px",color:T.textDim,fontFamily:"'Barlow Condensed',sans-serif",fontSize:10,letterSpacing:1,textTransform:"uppercase" }}>{h}</th>
+            ))}</tr></thead>
+            <tbody>
+              {filtered.map(item=>{
+                const low=item.stock<=item.minStock;
+                return (
+                  <tr key={item.id} style={{ borderTop:`1px solid ${T.border}` }}>
+                    <td style={{ padding:"12px 14px",color:T.text,fontWeight:600 }}>{item.item}</td>
+                    <td style={{ padding:"12px 14px",color:T.textSec,fontSize:13 }}>{item.unit}</td>
+                    <td style={{ padding:"12px 14px" }}><span style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:low?T.red:T.green }}>{item.stock}</span></td>
+                    <td style={{ padding:"12px 14px",color:T.textDim,fontSize:13 }}>{item.minStock}</td>
+                    <td style={{ padding:"12px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700 }}>${parseFloat(item.cost||0).toFixed(2)}</td>
+                    <td style={{ padding:"12px 14px",color:T.textSec,fontSize:13 }}>{item.supplier||"—"}</td>
+                    <td style={{ padding:"12px 14px" }}><Badge color={low?"red":"green"}>{low?"Low":"OK"}</Badge></td>
+                    <td style={{ padding:"12px 14px" }}>
+                      <div style={{ display:"flex",gap:6 }}>
+                        <Btn size="sm" variant="ghost" onClick={()=>{ setForm({...item,cost:String(item.cost||0)}); setModal(item); }}>Edit</Btn>
+                        <Btn size="sm" variant="danger" onClick={()=>setDelConfirm(item)}>Del</Btn>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+      {modal && (
+        <Modal onClose={()=>setModal(null)}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:16 }}>{modal==="add"?"ADD INGREDIENT":"EDIT INGREDIENT"}</div>
+          <Input label="Ingredient Name *" value={form.item} onChange={v=>setForm(f=>({...f,item:v}))} placeholder="e.g. Corn grated" />
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+            <div>
+              <label style={{ display:"block",color:T.textSec,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",marginBottom:5 }}>Unit</label>
+              <select value={form.unit} onChange={e=>setForm(f=>({...f,unit:e.target.value}))} style={{ width:"100%",background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"10px",color:T.text,fontSize:13,outline:"none" }}>
+                {["oz","lb","kg","unit","jar","btl","can","bag","case","pkg","qt","gal","each"].map(u=><option key={u}>{u}</option>)}
+              </select>
+            </div>
+            <Input label="Cost/Unit ($)" type="number" value={form.cost} onChange={v=>setForm(f=>({...f,cost:v}))} placeholder="0.00" />
+            <Input label="Current Stock" type="number" value={form.stock} onChange={v=>setForm(f=>({...f,stock:v}))} />
+            <Input label="Min Stock" type="number" value={form.minStock} onChange={v=>setForm(f=>({...f,minStock:v}))} />
+          </div>
+          <Input label="Supplier / Vendor" value={form.supplier||""} onChange={v=>setForm(f=>({...f,supplier:v}))} placeholder="e.g. Sysco, Local Farm" />
+          <div style={{ display:"flex",gap:10,marginTop:4 }}>
+            <Btn onClick={()=>setModal(null)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+            <Btn onClick={save} disabled={!form.item.trim()} style={{ flex:2 }}>Save</Btn>
+          </div>
+        </Modal>
+      )}
+      {delConfirm && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:20 }}>
+          <div style={{ background:T.card,border:`2px solid ${T.red}`,borderRadius:16,padding:"28px 24px",width:"100%",maxWidth:340,textAlign:"center",animation:"scaleIn 0.2s ease" }}>
+            <div style={{ fontSize:36,marginBottom:10 }}>🗑️</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:6 }}>DELETE?</div>
+            <div style={{ color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:18 }}>{delConfirm.item}</div>
+            <div style={{ display:"flex",gap:10 }}>
+              <button onClick={()=>setDelConfirm(null)} style={{ flex:1,padding:"14px",borderRadius:10,border:`2px solid ${T.border}`,background:T.elevated,color:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Cancel</button>
+              <button onClick={()=>del(delConfirm.id)} style={{ flex:2,padding:"14px",borderRadius:10,border:"none",background:T.red,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── SALES MANAGER (ADMIN) ──────────────────────────────── */
+const SalesMgr = ({ salesDay, persistSalesDay }) => {
+  const isMobile = useIsMobile();
+  const [editModal, setEditModal] = useState(null);
+  const [delConfirm, setDelConfirm] = useState(null);
+  const [form, setForm] = useState({ amount:"", method:"cash", note:"" });
+
+  const totalCash  = salesDay.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
+  const totalCard  = salesDay.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
+  const totalSales = totalCash + totalCard;
+
+  const saveEdit = () => {
+    persistSalesDay(salesDay.map(o => o.id===editModal.id
+      ? { ...o, amount:parseFloat(form.amount)||0, method:form.method, note:form.note }
+      : o
+    ));
+    setEditModal(null);
+  };
+  const del = (id) => { persistSalesDay(salesDay.filter(o=>o.id!==id)); setDelConfirm(null); };
+
+  return (
+    <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
+      <div style={{ marginBottom:20 }}>
+        <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>SALES MANAGER</h1>
+        <p style={{ color:T.textSec, fontSize:13 }}>Edit or delete individual sales entries for today</p>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
+        <KPI label="Total" value={`$${totalSales.toFixed(2)}`} sub={`${salesDay.length} orders`} icon="💰" />
+        <KPI label="Cash"  value={`$${totalCash.toFixed(2)}`} icon="💵" color={T.green} />
+        <KPI label="Card"  value={`$${totalCard.toFixed(2)}`} icon="💳" color={T.blue} />
+      </div>
+      {salesDay.length === 0 ? (
+        <Card style={{ textAlign:"center", padding:40 }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🗃️</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textDim, letterSpacing:1, fontSize:16 }}>NO SALES TODAY</div>
+        </Card>
+      ) : (
+        <Card style={{ padding:0, overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ background:T.elevated }}>
+                {["#","Time","Amount","Method","Note",""].map(h=>(
+                  <th key={h} style={{ textAlign:"left",padding:"9px 14px",color:T.textDim,fontFamily:"'Barlow Condensed',sans-serif",fontSize:10,letterSpacing:1,textTransform:"uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...salesDay].reverse().map((o,i)=>(
+                <tr key={o.id} style={{ borderTop:`1px solid ${T.border}` }}>
+                  <td style={{ padding:"11px 14px",color:T.textDim,fontSize:12 }}>{salesDay.length-i}</td>
+                  <td style={{ padding:"11px 14px",color:T.textSec,fontSize:13 }}>{o.time}</td>
+                  <td style={{ padding:"11px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16 }}>${o.amount.toFixed(2)}</td>
+                  <td style={{ padding:"11px 14px" }}><Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge></td>
+                  <td style={{ padding:"11px 14px",color:T.textSec,fontSize:13 }}>{o.note}</td>
+                  <td style={{ padding:"11px 14px" }}>
+                    <div style={{ display:"flex",gap:6 }}>
+                      <Btn size="sm" variant="ghost" onClick={()=>{ setForm({amount:String(o.amount),method:o.method,note:o.note}); setEditModal(o); }}>Edit</Btn>
+                      <Btn size="sm" variant="danger" onClick={()=>setDelConfirm(o)}>Del</Btn>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background:T.elevated, borderTop:`2px solid ${T.border}` }}>
+                <td colSpan={2} style={{ padding:"12px 14px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:T.text,textTransform:"uppercase" }}>Total</td>
+                <td style={{ padding:"12px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18 }}>${totalSales.toFixed(2)}</td>
+                <td colSpan={3} />
+              </tr>
+            </tfoot>
+          </table>
+        </Card>
+      )}
+      {editModal && (
+        <Modal onClose={()=>setEditModal(null)}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:16 }}>EDIT SALE</div>
+          <Input label="Amount ($)" type="number" value={form.amount} onChange={v=>setForm(f=>({...f,amount:v}))} />
+          <div style={{ display:"flex",gap:10,marginBottom:16 }}>
+            {["cash","card"].map(m=>(
+              <button key={m} onClick={()=>setForm(f=>({...f,method:m}))}
+                style={{ flex:1,padding:"12px",borderRadius:8,border:`2px solid ${form.method===m?T.orange:T.border}`,background:form.method===m?T.orangeDim:T.elevated,color:form.method===m?T.orange:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>
+                {m==="cash"?"💵 Cash":"💳 Card"}
+              </button>
+            ))}
+          </div>
+          <Input label="Note" value={form.note} onChange={v=>setForm(f=>({...f,note:v}))} />
+          <div style={{ display:"flex",gap:10,marginTop:4 }}>
+            <Btn onClick={()=>setEditModal(null)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+            <Btn onClick={saveEdit} style={{ flex:2 }}>Save Changes</Btn>
+          </div>
+        </Modal>
+      )}
+      {delConfirm && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:20 }}>
+          <div style={{ background:T.card,border:`2px solid ${T.red}`,borderRadius:16,padding:"28px 24px",width:"100%",maxWidth:340,textAlign:"center",animation:"scaleIn 0.2s ease" }}>
+            <div style={{ fontSize:36,marginBottom:10 }}>🗑️</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:8 }}>DELETE SALE?</div>
+            <div style={{ color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,marginBottom:6 }}>${delConfirm.amount.toFixed(2)}</div>
+            <div style={{ color:T.textSec,fontSize:13,marginBottom:18 }}>{delConfirm.time} · {delConfirm.note}</div>
+            <div style={{ display:"flex",gap:10 }}>
+              <button onClick={()=>setDelConfirm(null)} style={{ flex:1,padding:"14px",borderRadius:10,border:`2px solid ${T.border}`,background:T.elevated,color:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Cancel</button>
+              <button onClick={()=>del(delConfirm.id)} style={{ flex:2,padding:"14px",borderRadius:10,border:"none",background:T.red,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── APP ROOT ───────────────────────────────────────────── */
 export default function App() {
   const [auth, setAuth] = useState(null);
