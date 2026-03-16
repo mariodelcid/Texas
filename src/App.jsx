@@ -36,7 +36,7 @@ const MENU_ITEMS = [
   { id:2,  name:"Chico",                cat:"Elotes",  price:4.99, emoji:"🌽", stock:60,  desc:"12oz cup · corn preparado" },
   { id:3,  name:"Grande",               cat:"Elotes",  price:6.99, emoji:"🌽", stock:55,  desc:"20oz cup · corn preparado" },
   { id:4,  name:"Taki-Lokos",           cat:"Elotes",  price:6.99, emoji:"🔥", stock:20,  desc:"Elote + Takis Fuego" },
-  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🍞", stock:15,  desc:"Concha preparada" },
+  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🫓", stock:15,  desc:"Concha preparada" },
   { id:6,  name:"Tostaditas",           cat:"Elotes",  price:6.99, emoji:"🌮", stock:20,  desc:"Tostaditas preparadas" },
   // SOPAS
   { id:7,  name:"Sopas Preparadas",     cat:"Sopas",   price:4.99, emoji:"🍜", stock:50,  desc:"Sopas snack preparadas" },
