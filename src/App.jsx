@@ -32,32 +32,47 @@ const T = {
 /* ─── REAL PRODUCTS FROM ELOTESCONTROL DB ────────────────── */
 const MENU_ITEMS = [
   // ELOTES
-  { id:1,  name:"Elote Chico",          cat:"Elotes",  price:4.99, emoji:"🌽", stock:60,  desc:"12oz cup · corn, butter, sour cream" },
-  { id:2,  name:"Elote Grande",         cat:"Elotes",  price:6.99, emoji:"🌽", stock:55,  desc:"20oz cup · corn, butter, sour cream" },
-  { id:3,  name:"Elote Entero/Cob",     cat:"Elotes",  price:4.99, emoji:"🌽", stock:30,  desc:"Whole corn cob preparado" },
+  { id:1,  name:"Entero/Cob",           cat:"Elotes",  price:4.99, emoji:"🌽", stock:30,  desc:"Whole corn cob preparado" },
+  { id:2,  name:"Chico",                cat:"Elotes",  price:4.99, emoji:"🌽", stock:60,  desc:"12oz cup · corn preparado" },
+  { id:3,  name:"Grande",               cat:"Elotes",  price:6.99, emoji:"🌽", stock:55,  desc:"20oz cup · corn preparado" },
   { id:4,  name:"Taki-Lokos",           cat:"Elotes",  price:6.99, emoji:"🔥", stock:20,  desc:"Elote + Takis Fuego" },
-  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🍞", stock:15,  desc:"Concha salsa verde preparada" },
+  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🍞", stock:15,  desc:"Concha preparada" },
   { id:6,  name:"Tostaditas",           cat:"Elotes",  price:6.99, emoji:"🌮", stock:20,  desc:"Tostaditas preparadas" },
-  { id:7,  name:"Sopas Preparadas",     cat:"Elotes",  price:4.99, emoji:"🍜", stock:50,  desc:"Sopas snack preparadas" },
-  // CREPES
-  { id:8,  name:"Crepa Fresa/Nutella",  cat:"Crepes",  price:8.00, emoji:"🍓", stock:20,  desc:"Flour, eggs, milk, butter · strawberry, Nutella, whipped cream" },
-  { id:9,  name:"Crepa Banana/Nutella", cat:"Crepes",  price:8.00, emoji:"🍌", stock:20,  desc:"Flour, eggs, milk, butter · banana, Nutella, whipped cream" },
-  { id:10, name:"Crepa Ham/Cheese",     cat:"Crepes",  price:8.00, emoji:"🧀", stock:20,  desc:"Flour, eggs, milk, butter · ham, shredded cheese, sour cream" },
-  // DRINKS
-  { id:11, name:"Chamoyada Mango",      cat:"Drinks",  price:6.99, emoji:"🥭", stock:40,  desc:"24oz · frozen mango, mango syrup, tajin, lime" },
-  { id:12, name:"Chamoyada Fresa",      cat:"Drinks",  price:6.99, emoji:"🍓", stock:40,  desc:"24oz · frozen strawberry, syrup, tajin, lime" },
-  { id:13, name:"Refresher",            cat:"Drinks",  price:3.99, emoji:"🥤", stock:50,  desc:"24oz · horchata + strawberry powder" },
-  { id:14, name:"Caramel Frappuccino",  cat:"Drinks",  price:5.99, emoji:"☕", stock:30,  desc:"24oz · caramel, milk, whipped cream" },
-  { id:15, name:"Boba Tea",             cat:"Drinks",  price:5.99, emoji:"🧋", stock:25,  desc:"24oz · taro/flavored + boba pearls" },
-  // NIEVES
-  { id:16, name:"Nieves",               cat:"Nieves",  price:2.50, emoji:"🍧", stock:40,  desc:"Watermelon artisan ice" },
-  // SNACKS
-  { id:17, name:"Cheetos Hot",          cat:"Snacks",  price:3.00, emoji:"🌶️", stock:30,  desc:"Hot Cheetos preparados" },
-  { id:18, name:"Doritos",              cat:"Snacks",  price:3.00, emoji:"🟡", stock:25,  desc:"Doritos preparados" },
-  { id:19, name:"Red Bull",             cat:"Snacks",  price:3.99, emoji:"🐂", stock:20,  desc:"Red Bull energy drink" },
+  // SOPAS
+  { id:7,  name:"Sopas Preparadas",     cat:"Sopas",   price:4.99, emoji:"🍜", stock:50,  desc:"Sopas snack preparadas" },
+  // CREPAS
+  { id:8,  name:"Crepa Nutella/Banana", cat:"Crepas",  price:8.00, emoji:"🥞", stock:20,  desc:"Flour, eggs, milk · Nutella, banana, whipped cream" },
+  { id:9,  name:"Crepa Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Flour, eggs, milk · strawberry, cream cheese, whipped cream" },
+  { id:10, name:"Crepa Jamon & Queso",  cat:"Crepas",  price:8.00, emoji:"🧀", stock:20,  desc:"Flour, eggs, milk · ham, shredded cheese, sour cream" },
+  { id:11, name:"Crispy Nutella/Banana",cat:"Crepas",  price:8.00, emoji:"🥞", stock:20,  desc:"Crispy crepa · Nutella, banana, whipped cream" },
+  { id:12, name:"Crispy Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Crispy crepa · strawberry, cream cheese, whipped cream" },
+  { id:13, name:"Crispy Jamon & Queso", cat:"Crepas",  price:8.00, emoji:"🧀", stock:20,  desc:"Crispy crepa · ham, shredded cheese, sour cream" },
+  // BOBA TEA
+  { id:14, name:"Boba Tea Taro",        cat:"Drinks",  price:5.99, emoji:"🧋", stock:25,  desc:"Taro boba tea" },
+  { id:15, name:"Boba Tea Strawberry",  cat:"Drinks",  price:5.99, emoji:"🍓", stock:25,  desc:"Strawberry boba tea" },
+  { id:16, name:"Boba Tea Coffee",      cat:"Drinks",  price:5.99, emoji:"☕", stock:25,  desc:"Coffee boba tea" },
+  { id:17, name:"Boba Tea Tiger Milk",  cat:"Drinks",  price:5.99, emoji:"🐯", stock:25,  desc:"Tiger milk boba tea" },
+  // CHAMOYODAS
+  { id:18, name:"Chamoyada Mango",      cat:"Drinks",  price:6.99, emoji:"🥭", stock:40,  desc:"Frozen mango chamoyada" },
+  { id:19, name:"Chamoyada Fresa",      cat:"Drinks",  price:6.99, emoji:"🍓", stock:40,  desc:"Frozen strawberry chamoyada" },
+  { id:20, name:"Chamoyada Sandia",     cat:"Drinks",  price:6.99, emoji:"🍉", stock:40,  desc:"Watermelon chamoyada" },
+  { id:21, name:"Chamoyada Piña",       cat:"Drinks",  price:6.99, emoji:"🍍", stock:40,  desc:"Pineapple chamoyada" },
+  { id:22, name:"Chamoyada Tamarindo",  cat:"Drinks",  price:6.99, emoji:"🟤", stock:30,  desc:"Tamarindo chamoyada" },
+  // REFRESHERS
+  { id:23, name:"Mango/Peach Dragonfruit", cat:"Drinks", price:3.99, emoji:"🐉", stock:40, desc:"Refresher" },
+  { id:24, name:"Coco Rosa",            cat:"Drinks",  price:3.99, emoji:"🥥", stock:40,  desc:"Refresher" },
+  { id:25, name:"Horchata",             cat:"Drinks",  price:3.99, emoji:"🥛", stock:40,  desc:"Refresher" },
+  { id:26, name:"Horchata Strawberry",  cat:"Drinks",  price:3.99, emoji:"🍓", stock:40,  desc:"Refresher" },
+  { id:27, name:"Horchata Cafe",        cat:"Drinks",  price:3.99, emoji:"☕", stock:40,  desc:"Refresher" },
+  { id:28, name:"Red Bull Prep",        cat:"Drinks",  price:3.99, emoji:"🐂", stock:20,  desc:"Red Bull refresher" },
+  // MALTEADAS / SMOOTHIES
+  { id:29, name:"Caramel Frapuchino",   cat:"Malteadas", price:5.99, emoji:"🍮", stock:30, desc:"Caramel, milk, whipped cream" },
+  // NIEVES / POSTRES
+  { id:30, name:"Nieves",               cat:"Postres", price:2.50, emoji:"🍧", stock:40,  desc:"Artisan ice cream" },
+  { id:31, name:"Fresas con Crema",     cat:"Postres", price:5.99, emoji:"🍰", stock:25,  desc:"Fresh strawberries with cream" },
 ];
 
-const CATEGORIES = ["All","Elotes","Crepes","Drinks","Nieves","Snacks"];
+const CATEGORIES = ["All","Elotes","Sopas","Crepas","Drinks","Malteadas","Postres"];
 
 // Real sales data from DB — columns: date, day, vCh, vGra, v24, v20, v16, vNieve, charolas, cheetos, conchitas, sopas, vSopas, doritos, hotCup, redBull, tostitos, takis
 const RAW_SALES = [
