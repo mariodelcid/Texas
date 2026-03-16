@@ -44,9 +44,7 @@ const MENU_ITEMS = [
   { id:8,  name:"Crepa Nutella/Banana", cat:"Crepas",  price:8.00, emoji:"🥞", stock:20,  desc:"Flour, eggs, milk · Nutella, banana, whipped cream" },
   { id:9,  name:"Crepa Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Flour, eggs, milk · strawberry, cream cheese, whipped cream" },
   { id:10, name:"Crepa Jamon & Queso",  cat:"Crepas",  price:8.00, emoji:"🧀", stock:20,  desc:"Flour, eggs, milk · ham, shredded cheese, sour cream" },
-  { id:11, name:"Crispy Nutella/Banana",cat:"Crepas",  price:8.00, emoji:"🥞", stock:20,  desc:"Crispy crepa · Nutella, banana, whipped cream" },
-  { id:12, name:"Crispy Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Crispy crepa · strawberry, cream cheese, whipped cream" },
-  { id:13, name:"Crispy Jamon & Queso", cat:"Crepas",  price:8.00, emoji:"🧀", stock:20,  desc:"Crispy crepa · ham, shredded cheese, sour cream" },
+
   // BOBA TEA
   { id:14, name:"Boba Tea Taro",        cat:"Drinks",  price:5.99, emoji:"🧋", stock:25,  desc:"Taro boba tea" },
   { id:15, name:"Boba Tea Strawberry",  cat:"Drinks",  price:5.99, emoji:"🍓", stock:25,  desc:"Strawberry boba tea" },
