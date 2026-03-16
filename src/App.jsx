@@ -365,6 +365,8 @@ const POS = () => {
   const [cashGiven, setCashGiven] = useState("");
   const [orderDone, setOrderDone] = useState(false);
   const [orderNum] = useState(Math.floor(Math.random()*9000)+1000);
+  const [cardConfirm, setCardConfirm] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
 
   const filteredItems = MENU_ITEMS.filter(m =>
     (cat === "All" || m.cat === cat) && m.name.toLowerCase().includes(search.toLowerCase())
@@ -382,10 +384,29 @@ const POS = () => {
   const change = parseFloat(cashGiven||0) - grandTotal;
   const cartCount = cart.reduce((s,x)=>s+x.qty,0);
 
-  const processOrder = () => {
-    setOrderDone(true);
-    setTimeout(()=>{ setCart([]); setPayModal(false); setOrderDone(false); setCashGiven(""); setShowCart(false); }, 2500);
+  const finishOrder = () => {
+    setCardConfirm(false);
+    setPayModal(false);
+    setShowCart(false);
+    setCashGiven("");
+    setCelebrate(true);
+    setTimeout(() => { setCart([]); setCelebrate(false); }, 3500);
   };
+
+  const processOrder = () => {
+    if (payMethod === "card") {
+      setCardConfirm(true);
+    } else {
+      finishOrder();
+    }
+  };
+
+  const CONFETTI_POS = Array.from({length:32},(_,i)=>({
+    id:i, x:Math.random()*100, delay:Math.random()*1.2,
+    dur:1.5+Math.random()*1.5,
+    color:["#E8640A","#FF9A50","#F59E0B","#22C55E","#3B82F6","#ffffff"][Math.floor(Math.random()*6)],
+    size:8+Math.random()*12,
+  }));
 
   const CartPanel = () => (
     <div style={{ display:"flex", flexDirection:"column", height:isMobile?"100%":"100vh", background:T.surface, borderLeft:isMobile?"none":`1px solid ${T.border}`, width:isMobile?"100%":300 }}>
@@ -479,48 +500,103 @@ const POS = () => {
         </div>
       )}
 
+      {/* ── PAYMENT MODAL ── */}
       {payModal && (
-        <Modal onClose={()=>!orderDone&&setPayModal(false)}>
-          {orderDone ? (
-            <div style={{ textAlign:"center", padding:"20px 0" }}>
-              <div style={{ fontSize:52 }}>✅</div>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:26, color:T.green, marginTop:10 }}>ORDER COMPLETE!</div>
+        <Modal onClose={()=>setPayModal(false)}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:T.text, marginBottom:18 }}>PAYMENT</div>
+          <div style={{ display:"flex", gap:10, marginBottom:18 }}>
+            {["cash","card"].map(m=>(
+              <button key={m} onClick={()=>setPayMethod(m)}
+                style={{ flex:1, padding:"14px", borderRadius:8, border:`2px solid ${payMethod===m?T.orange:T.border}`, background:payMethod===m?T.orangeDim:T.elevated, color:payMethod===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                {m==="cash"?"💵 Cash":"💳 Card"}
+              </button>
+            ))}
+          </div>
+          <div style={{ background:T.elevated, borderRadius:8, padding:"12px 16px", marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:T.textSec, fontFamily:"'Nunito',sans-serif", fontSize:14 }}>Total Due</span>
+              <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:24 }}>${grandTotal.toFixed(2)}</span>
             </div>
-          ) : (
+          </div>
+          {payMethod==="cash" && (
             <>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:T.text, marginBottom:18 }}>PAYMENT</div>
-              <div style={{ display:"flex", gap:10, marginBottom:18 }}>
-                {["cash","card"].map(m=>(
-                  <button key={m} onClick={()=>setPayMethod(m)}
-                    style={{ flex:1, padding:"12px", borderRadius:8, border:`2px solid ${payMethod===m?T.orange:T.border}`, background:payMethod===m?T.orangeDim:T.elevated, color:payMethod===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:15, cursor:"pointer", textTransform:"uppercase" }}>
-                    {m==="cash"?"💵 Cash":"💳 Card"}
-                  </button>
-                ))}
-              </div>
-              <div style={{ background:T.elevated, borderRadius:8, padding:"12px 16px", marginBottom:14 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ color:T.textSec, fontFamily:"'Nunito',sans-serif", fontSize:14 }}>Total Due</span>
-                  <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22 }}>${grandTotal.toFixed(2)}</span>
+              <Input label="Cash Given" value={cashGiven} onChange={setCashGiven} type="number" placeholder="0.00" />
+              {cashGiven && (
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, background:change>=0?T.orangeDim:"rgba(239,68,68,0.15)", padding:"12px 16px", borderRadius:8 }}>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textSec, fontWeight:700, fontSize:16 }}>CHANGE</span>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22, color:change>=0?T.green:T.red }}>${Math.abs(change).toFixed(2)}</span>
                 </div>
-              </div>
-              {payMethod==="cash" && (
-                <>
-                  <Input label="Cash Given" value={cashGiven} onChange={setCashGiven} type="number" placeholder="0.00" />
-                  {cashGiven && (
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14, background:change>=0?T.orangeDim:"rgba(239,68,68,0.15)", padding:"10px 14px", borderRadius:6 }}>
-                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textSec, fontWeight:700 }}>CHANGE</span>
-                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18, color:change>=0?T.green:T.red }}>${Math.abs(change).toFixed(2)}</span>
-                    </div>
-                  )}
-                </>
               )}
-              <div style={{ display:"flex", gap:10, marginTop:4 }}>
-                <Btn onClick={()=>setPayModal(false)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
-                <Btn onClick={processOrder} style={{ flex:2 }}>Complete</Btn>
-              </div>
             </>
           )}
+          <div style={{ display:"flex", gap:10, marginTop:4 }}>
+            <Btn onClick={()=>setPayModal(false)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
+            <Btn onClick={processOrder} style={{ flex:2 }}>Complete Order</Btn>
+          </div>
         </Modal>
+      )}
+
+      {/* ── CARD CONFIRMATION POPUP ── */}
+      {cardConfirm && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, padding:20 }}>
+          <div style={{ background:T.card, border:`2px solid ${T.blue}`, borderRadius:20, padding:"36px 28px", width:"100%", maxWidth:400, textAlign:"center", animation:"scaleIn 0.25s ease" }}>
+            <div style={{ fontSize:60, marginBottom:12 }}>💳</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:28, color:T.text, marginBottom:8 }}>CONFIRM CARD</div>
+            <div style={{ color:T.textSec, fontSize:15, fontFamily:"'Nunito',sans-serif", marginBottom:8 }}>Has the card payment been processed?</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:48, color:T.blue, margin:"16px 0" }}>
+              ${grandTotal.toFixed(2)}
+            </div>
+            <div style={{ display:"flex", gap:12, marginTop:8 }}>
+              <button onClick={()=>setCardConfirm(false)}
+                style={{ flex:1, padding:"18px", borderRadius:12, border:`2px solid ${T.border}`, background:T.elevated, color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:18, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                ✗ NO
+              </button>
+              <button onClick={finishOrder}
+                style={{ flex:2, padding:"18px", borderRadius:12, border:"none", background:T.blue, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18, cursor:"pointer", textTransform:"uppercase", boxShadow:"0 4px 20px rgba(59,130,246,0.5)", WebkitTapHighlightColor:"transparent" }}>
+                ✓ YES, DONE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FULLSCREEN CELEBRATION ── */}
+      {celebrate && (
+        <div style={{ position:"fixed", inset:0, zIndex:400, background:"#0D0D0D", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+          <style>{`
+            @keyframes confettiFall {
+              0%   { transform:translateY(0) rotate(0deg);     opacity:1; }
+              100% { transform:translateY(110vh) rotate(720deg); opacity:0; }
+            }
+            @keyframes popIn {
+              0%  { transform:scale(0.4); opacity:0; }
+              60% { transform:scale(1.1); opacity:1; }
+              100%{ transform:scale(1);   opacity:1; }
+            }
+            @keyframes amountGlow {
+              0%,100% { text-shadow:0 0 40px rgba(232,100,10,0.9); }
+              50%     { text-shadow:0 0 90px rgba(232,100,10,1), 0 0 140px rgba(255,152,50,0.7); }
+            }
+          `}</style>
+          {CONFETTI_POS.map(c=>(
+            <div key={c.id} style={{ position:"absolute", left:`${c.x}%`, top:-20, width:c.size, height:c.size, borderRadius:c.id%2===0?"50%":"3px", background:c.color, animation:`confettiFall ${c.dur}s ${c.delay}s ease-in forwards`, opacity:0.9 }} />
+          ))}
+          <div style={{ textAlign:"center", padding:"0 12px", animation:"popIn 0.5s ease forwards", position:"relative", zIndex:2 }}>
+            <div style={{ fontSize:"clamp(90px,26vw,210px)", lineHeight:0.9, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, color:T.orange, animation:"amountGlow 1.5s ease-in-out infinite", letterSpacing:-2 }}>
+              ${grandTotal.toFixed(2)}
+            </div>
+            <div style={{ fontSize:"clamp(20px,5.5vw,48px)", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, color:"#fff", letterSpacing:4, textTransform:"uppercase", marginTop:16 }}>
+              {payMethod === "card" ? "💳 CARD SALE!" : "💵 CASH SALE!"}
+            </div>
+            <div style={{ fontSize:"clamp(13px,3vw,20px)", color:T.textSec, marginTop:10, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:2 }}>
+              ORDER #{orderNum} · COMPLETE ✓
+            </div>
+          </div>
+          <button onClick={()=>{ setCart([]); setCelebrate(false); }}
+            style={{ position:"absolute", bottom:50, left:"50%", transform:"translateX(-50%)", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.25)", color:"#fff", borderRadius:30, padding:"14px 36px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17, cursor:"pointer", letterSpacing:1, zIndex:3, WebkitTapHighlightColor:"transparent" }}>
+            NEXT ORDER
+          </button>
+        </div>
       )}
     </div>
   );
