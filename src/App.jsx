@@ -995,16 +995,39 @@ const Reports = () => {
 };
 
 /* ─── USERS ──────────────────────────────────────────────── */
+const WORKERS_KEY = "lokos_workers_v1";
+
 const Users = () => {
   const isMobile = useIsMobile();
-  const [workers, setWorkers] = useState(WORKERS);
+  const [workers, setWorkers] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WORKERS_KEY);
+      return saved ? JSON.parse(saved) : WORKERS;
+    } catch { return WORKERS; }
+  });
   const [modal, setModal] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [form, setForm] = useState({name:"",role:"Cashier",pin:"",hourlyRate:15,active:true});
+
+  const persist = (updated) => {
+    setWorkers(updated);
+    try { localStorage.setItem(WORKERS_KEY, JSON.stringify(updated)); } catch {}
+  };
+
   const save = () => {
-    if (modal==="add") setWorkers(w=>[...w,{...form,id:Date.now()}]);
-    else setWorkers(w=>w.map(x=>x.id===modal.id?{...form,id:x.id}:x));
+    if (!form.name.trim() || !form.pin.trim()) return;
+    const updated = modal === "add"
+      ? [...workers, { ...form, id: Date.now() }]
+      : workers.map(x => x.id === modal.id ? { ...form, id: x.id } : x);
+    persist(updated);
     setModal(null);
   };
+
+  const deleteWorker = (id) => {
+    persist(workers.filter(w => w.id !== id));
+    setDeleteConfirm(null);
+  };
+
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:20, flexWrap:"wrap", gap:10 }}>
@@ -1012,8 +1035,9 @@ const Users = () => {
           <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>TEAM</h1>
           <p style={{ color:T.textSec, fontSize:13 }}>{workers.filter(w=>w.active).length} active · {workers.filter(w=>!w.active).length} inactive</p>
         </div>
-        <Btn onClick={()=>{setForm({name:"",role:"Cashier",pin:"",hourlyRate:15,active:true});setModal("add");}}>+ Add</Btn>
+        <Btn onClick={()=>{setForm({name:"",role:"Cashier",pin:"",hourlyRate:15,active:true});setModal("add");}}>+ Add Worker</Btn>
       </div>
+
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)", gap:14 }}>
         {workers.map(w=>(
           <Card key={w.id} style={{ display:"flex", alignItems:"center", gap:14, animation:"fadeIn 0.3s ease" }}>
@@ -1023,19 +1047,24 @@ const Users = () => {
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ color:T.text,fontWeight:700,fontSize:14,marginBottom:4 }}>{w.name}</div>
               <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
-                <Badge color={w.role==="Manager"?"orange":"yellow"}>{w.role}</Badge>
+                <Badge color={w.role==="Manager"||w.role==="Admin"?"orange":"yellow"}>{w.role}</Badge>
                 <Badge color={w.active?"green":"red"}>{w.active?"Active":"Inactive"}</Badge>
               </div>
               <div style={{ color:T.textSec,fontSize:11,marginTop:4 }}>${w.hourlyRate}/hr · PIN: {w.pin}</div>
             </div>
-            <Btn onClick={()=>{setForm(w);setModal(w);}} variant="ghost" size="sm">Edit</Btn>
+            <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+              <Btn onClick={()=>{setForm(w);setModal(w);}} variant="ghost" size="sm">Edit</Btn>
+              <Btn onClick={()=>setDeleteConfirm(w)} variant="danger" size="sm">Delete</Btn>
+            </div>
           </Card>
         ))}
       </div>
+
+      {/* Edit / Add modal */}
       {modal && (
         <Modal onClose={()=>setModal(null)}>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20, color:T.text, marginBottom:18 }}>{modal==="add"?"ADD WORKER":"EDIT WORKER"}</div>
-          <Input label="Full Name" value={form.name} onChange={v=>setForm(f=>({...f,name:v}))} />
+          <Input label="Full Name *" value={form.name} onChange={v=>setForm(f=>({...f,name:v}))} placeholder="e.g. Maria Garcia" />
           <div style={{ marginBottom:14 }}>
             <label style={{ display:"block",color:T.textSec,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",marginBottom:5 }}>Role</label>
             <select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} style={{ width:"100%",background:T.elevated,border:`1px solid ${T.border}`,borderRadius:6,padding:"10px 14px",color:T.text,fontSize:14,fontFamily:"'Nunito',sans-serif",outline:"none" }}>
@@ -1043,18 +1072,43 @@ const Users = () => {
             </select>
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-            <Input label="PIN (4 digits)" value={form.pin} onChange={v=>setForm(f=>({...f,pin:v}))} />
+            <Input label="PIN (4 digits) *" value={form.pin} onChange={v=>setForm(f=>({...f,pin:v.slice(0,4)}))} placeholder="0000" />
             <Input label="Hourly Rate ($)" type="number" value={form.hourlyRate} onChange={v=>setForm(f=>({...f,hourlyRate:+v}))} />
           </div>
           <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:16 }}>
             <input type="checkbox" id="active" checked={form.active} onChange={e=>setForm(f=>({...f,active:e.target.checked}))} />
-            <label htmlFor="active" style={{ color:T.textSec,fontSize:14,fontFamily:"'Nunito',sans-serif",cursor:"pointer" }}>Active</label>
+            <label htmlFor="active" style={{ color:T.textSec,fontSize:14,fontFamily:"'Nunito',sans-serif",cursor:"pointer" }}>Active employee</label>
           </div>
+          {(!form.name.trim()||!form.pin.trim()) && (
+            <div style={{ color:T.yellow, fontSize:12, fontFamily:"'Nunito',sans-serif", marginBottom:12 }}>⚠ Name and PIN are required</div>
+          )}
           <div style={{ display:"flex",gap:10 }}>
             <Btn onClick={()=>setModal(null)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
-            <Btn onClick={save} style={{ flex:2 }}>Save Worker</Btn>
+            <Btn onClick={save} disabled={!form.name.trim()||!form.pin.trim()} style={{ flex:2 }}>Save Worker</Btn>
           </div>
         </Modal>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:20 }}>
+          <div style={{ background:T.card,border:`2px solid ${T.red}`,borderRadius:16,padding:"32px 24px",width:"100%",maxWidth:360,textAlign:"center",animation:"scaleIn 0.2s ease" }}>
+            <div style={{ fontSize:44,marginBottom:12 }}>🗑️</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,color:T.text,marginBottom:8 }}>DELETE WORKER?</div>
+            <div style={{ color:T.textSec,fontSize:14,fontFamily:"'Nunito',sans-serif",marginBottom:6 }}>This will permanently remove:</div>
+            <div style={{ color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,marginBottom:20 }}>{deleteConfirm.name}</div>
+            <div style={{ display:"flex",gap:12 }}>
+              <button onClick={()=>setDeleteConfirm(null)}
+                style={{ flex:1,padding:"16px",borderRadius:10,border:`2px solid ${T.border}`,background:T.elevated,color:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,cursor:"pointer",textTransform:"uppercase",WebkitTapHighlightColor:"transparent" }}>
+                Cancel
+              </button>
+              <button onClick={()=>deleteWorker(deleteConfirm.id)}
+                style={{ flex:2,padding:"16px",borderRadius:10,border:"none",background:T.red,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,cursor:"pointer",textTransform:"uppercase",boxShadow:"0 4px 16px rgba(239,68,68,0.4)",WebkitTapHighlightColor:"transparent" }}>
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
