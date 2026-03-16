@@ -236,19 +236,23 @@ const Modal = ({ children, onClose }) => (
 const NAV_ITEMS = [
   { id:"dashboard", label:"Dashboard", icon:"📊" },
   { id:"pos",       label:"POS",       icon:"🛒" },
+  { id:"products",  label:"Products",  icon:"🌽" },
+  { id:"ingrmgr",   label:"Ingredientes", icon:"🧂" },
   { id:"inventory", label:"Inventory", icon:"📦" },
   { id:"compras",   label:"Compras",   icon:"🧾" },
   { id:"clock",     label:"Clock",     icon:"⏱"  },
   { id:"reports",   label:"Reports",   icon:"📈" },
   { id:"users",     label:"Team",      icon:"👥" },
+  { id:"salesmgr",  label:"Sales Mgr", icon:"🗃️"  },
   { id:"saleday",   label:"My Day",    icon:"💵" },
 ];
 
+const ADMIN_NAV = NAV_ITEMS.filter(n => n.id !== "saleday");
+const WORKER_NAV = NAV_ITEMS.filter(n => ["pos","clock","saleday"].includes(n.id));
+
 const Sidebar = ({ screen, setScreen, userRole, onLogout }) => {
   const isMobile = useIsMobile();
-  const items = userRole === "worker"
-    ? [NAV_ITEMS[1], NAV_ITEMS[4], NAV_ITEMS[7]]
-    : NAV_ITEMS.slice(0, 7);
+  const items = userRole === "worker" ? WORKER_NAV : ADMIN_NAV;
 
   if (isMobile) return (
     <div style={{ position:"fixed", bottom:0, left:0, right:0, background:T.surface, borderTop:`1px solid ${T.border}`, display:"flex", alignItems:"center", zIndex:100, height:60 }}>
@@ -354,7 +358,7 @@ const Login = ({ onLogin }) => {
 };
 
 /* ─── POS ────────────────────────────────────────────────── */
-const POS = () => {
+const POS = ({ products: menuItems = MENU_ITEMS }) => {
   const isMobile = useIsMobile();
   const [cat, setCat] = useState("All");
   const [cart, setCart] = useState([]);
@@ -368,7 +372,7 @@ const POS = () => {
   const [cardConfirm, setCardConfirm] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
 
-  const filteredItems = MENU_ITEMS.filter(m =>
+  const filteredItems = menuItems.filter(m =>
     (cat === "All" || m.cat === cat) && m.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -995,7 +999,10 @@ const Reports = () => {
 };
 
 /* ─── USERS ──────────────────────────────────────────────── */
-const WORKERS_KEY = "lokos_workers_v1";
+const WORKERS_KEY   = "lokos_workers_v1";
+const PRODUCTS_KEY  = "lokos_products_v1";
+const INGR_KEY      = "lokos_ingredients_v1";
+const SALES_DAY_KEY = "lokos_sales_day_v1";
 
 const Users = () => {
   const isMobile = useIsMobile();
@@ -1115,9 +1122,10 @@ const Users = () => {
 };
 
 /* ─── SALE OF THE DAY ────────────────────────────────────── */
-const SaleOfDay = ({ worker }) => {
+const SaleOfDay = ({ worker, salesDay, persistSalesDay }) => {
   const isMobile = useIsMobile();
-  const [orders, setOrders] = useState([]);
+  const orders = salesDay;
+  const setOrders = persistSalesDay;
   const [payModal, setPayModal] = useState(false);
   const [payMethod, setPayMethod] = useState("cash");
   const [cashGiven, setCashGiven] = useState("");
@@ -1139,7 +1147,7 @@ const SaleOfDay = ({ worker }) => {
 
   const commitSale = (method) => {
     const amt = parseFloat(amount);
-    setOrders(o => [...o, {
+    setOrders([...orders, {
       id: Date.now(),
       time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
       amount: amt,
@@ -1352,6 +1360,29 @@ export default function App() {
   const [screen, setScreen] = useState("dashboard");
   const isMobile = useIsMobile();
 
+  // ── shared state persisted across sessions ──
+  const [products, setProducts] = useState(() => {
+    try { const s=localStorage.getItem(PRODUCTS_KEY); return s?JSON.parse(s):MENU_ITEMS; } catch { return MENU_ITEMS; }
+  });
+  const [ingredients, setIngredients] = useState(() => {
+    try { const s=localStorage.getItem(INGR_KEY); return s?JSON.parse(s):INVENTORY; } catch { return INVENTORY; }
+  });
+  const [salesDay, setSalesDay] = useState(() => {
+    try {
+      const s=localStorage.getItem(SALES_DAY_KEY);
+      const saved=s?JSON.parse(s):null;
+      const today=new Date().toDateString();
+      return saved&&saved.date===today?saved.orders:[];
+    } catch { return []; }
+  });
+
+  const persistProducts = (p) => { setProducts(p); try{localStorage.setItem(PRODUCTS_KEY,JSON.stringify(p));}catch{} };
+  const persistIngredients = (i) => { setIngredients(i); try{localStorage.setItem(INGR_KEY,JSON.stringify(i));}catch{} };
+  const persistSalesDay = (orders) => {
+    setSalesDay(orders);
+    try{localStorage.setItem(SALES_DAY_KEY,JSON.stringify({date:new Date().toDateString(),orders}));}catch{}
+  };
+
   const handleLogin = (role, worker) => {
     setAuth({ role, worker });
     setScreen(role==="admin"?"dashboard":"pos");
@@ -1359,7 +1390,19 @@ export default function App() {
 
   if (!auth) return <Login onLogin={handleLogin} />;
 
-  const SCREENS = { dashboard:<Dashboard />, pos:<POS />, inventory:<Inventory />, compras:<Compras />, clock:<Clock />, reports:<Reports />, users:<Users />, saleday:<SaleOfDay worker={auth.worker} /> };
+  const SCREENS = {
+    dashboard: <Dashboard />,
+    pos:       <POS products={products} />,
+    products:  <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />,
+    ingrmgr:   <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />,
+    inventory: <Inventory />,
+    compras:   <Compras />,
+    clock:     <Clock />,
+    reports:   <Reports />,
+    users:     <Users />,
+    salesmgr:  <SalesMgr salesDay={salesDay} persistSalesDay={persistSalesDay} />,
+    saleday:   <SaleOfDay worker={auth.worker} salesDay={salesDay} persistSalesDay={persistSalesDay} />,
+  };
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:T.bg, fontFamily:"'Nunito',sans-serif" }}>
