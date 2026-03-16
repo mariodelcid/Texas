@@ -127,10 +127,10 @@ const CAT_DATA = [
 ];
 
 const WORKERS = [
-  { id:1, name:"Maria Garcia",   role:"Cashier", pin:"1234", active:true,  hourlyRate:15 },
-  { id:2, name:"Juan Lopez",     role:"Cook",    pin:"5678", active:true,  hourlyRate:16 },
-  { id:3, name:"Sofia Martinez", role:"Cashier", pin:"9012", active:false, hourlyRate:15 },
-  { id:4, name:"Carlos Rivera",  role:"Manager", pin:"3456", active:true,  hourlyRate:18 },
+  { id:1, name:"Maria Garcia",   role:"Cashier", pin:"0000", active:true,  hourlyRate:15 },
+  { id:2, name:"Juan Lopez",     role:"Cook",    pin:"0000", active:true,  hourlyRate:16 },
+  { id:3, name:"Sofia Martinez", role:"Cashier", pin:"0000", active:false, hourlyRate:15 },
+  { id:4, name:"Carlos Rivera",  role:"Manager", pin:"0000", active:true,  hourlyRate:18 },
 ];
 
 const INVENTORY = [
@@ -300,7 +300,7 @@ const Login = ({ onLogin }) => {
   const doLogin = (p) => {
     setLoading(true);
     setTimeout(() => {
-      if (p === "0000") { onLogin("admin"); return; }
+      if (p === "9999") { onLogin("admin"); return; }
       const w = WORKERS.find(x => x.pin === p);
       if (w) { onLogin("worker", w); return; }
       setError("Invalid PIN — try again"); setPin(""); setLoading(false);
@@ -342,7 +342,7 @@ const Login = ({ onLogin }) => {
           {error && <div style={{ color:T.red, fontSize:13, marginTop:14, fontFamily:"'Nunito',sans-serif" }}>{error}</div>}
           {loading && <div style={{ color:T.orange, fontSize:12, marginTop:14, animation:"pulse 1s infinite", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:2 }}>LOGGING IN...</div>}
           <div style={{ marginTop:20, padding:"10px 12px", background:T.elevated, borderRadius:6, fontSize:11, color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5 }}>
-            ADMIN: 0000 &nbsp;·&nbsp; WORKER: 1234
+            ADMIN: 9999 &nbsp;·&nbsp; EMPLOYEE: 0000
           </div>
         </Card>
       </div>
