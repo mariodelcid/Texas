@@ -40,9 +40,10 @@ const MENU_ITEMS = [
   { id:6,  name:"Tostaditas",           cat:"Elotes",  price:6.99, emoji:"🌮", stock:20,  desc:"Tostaditas preparadas" },
   { id:7,  name:"Sopas Preparadas",     cat:"Elotes",  price:4.99, emoji:"🍜", stock:50,  desc:"Sopas snack preparadas" },
   // CREPES
-  { id:8,  name:"Crepa Nutella/Banana", cat:"Crepes",  price:8.00, emoji:"🥞", stock:20,  desc:"Japanese crepe · Nutella, banana, whipped cream" },
-  { id:9,  name:"Crepa Fresa/Cream Cheese", cat:"Crepes", price:8.00, emoji:"🍓", stock:20, desc:"Japanese crepe · strawberry, cream cheese" },
-  { id:10, name:"Crispy Crepa",         cat:"Crepes",  price:8.00, emoji:"🥞", stock:20,  desc:"Crispy Japanese crepe · Nutella" },
+  { id:8,  name:"Crepa Nutella/Banana",  cat:"Crepes",  price:8.00, emoji:"🥞", stock:20,  desc:"Japanese crepe · Nutella, banana, whipped cream" },
+  { id:9,  name:"Crepa Fresa/Nutella",  cat:"Crepes",  price:8.00, emoji:"🍓", stock:20,  desc:"Japanese crepe · strawberry, Nutella, whipped cream" },
+  { id:10, name:"Crepa Ham and Cheese", cat:"Crepes",  price:8.00, emoji:"🧀", stock:20,  desc:"Savory Japanese crepe · ham, shredded cheese, sour cream" },
+  { id:20, name:"Crepa Banana/Nutella", cat:"Crepes",  price:8.00, emoji:"🍌", stock:20,  desc:"Japanese crepe · banana, Nutella, whipped cream" },
   // DRINKS
   { id:11, name:"Chamoyada Mango",      cat:"Drinks",  price:6.99, emoji:"🥭", stock:40,  desc:"24oz · frozen mango, mango syrup, tajin, lime" },
   { id:12, name:"Chamoyada Fresa",      cat:"Drinks",  price:6.99, emoji:"🍓", stock:40,  desc:"24oz · frozen strawberry, syrup, tajin, lime" },
