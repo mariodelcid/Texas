@@ -936,82 +936,204 @@ const Compras = () => {
 };
 
 /* ─── CLOCK ──────────────────────────────────────────────── */
+const CLOCK_KEY = "lokos_clock_v1";
+
+// Get ISO date string for today
+const todayISO = () => new Date().toISOString().split("T")[0];
+
+// Get Sunday of the current week
+const weekStart = () => {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay()); // Sunday = 0
+  return d.toISOString().split("T")[0];
+};
+
+// Calc hours between two time strings "HH:MM"
+const calcHours = (inTime, outTime, inDate, outDate) => {
+  const toMs = (dateStr, timeStr) => {
+    const [h,m] = timeStr.split(":").map(Number);
+    const d = new Date(dateStr); d.setHours(h,m,0,0); return d.getTime();
+  };
+  return Math.round(((toMs(outDate||inDate, outTime) - toMs(inDate, inTime)) / 3600000) * 100) / 100;
+};
+
 const Clock = ({ workers: clockWorkers = WORKERS }) => {
   const isMobile = useIsMobile();
-  const [records, setRecords] = useState(CLOCK_RECORDS);
   const [time, setTime] = useState(new Date());
-  const [selected, setSelected] = useState(null);
-  useEffect(()=>{ const t=setInterval(()=>setTime(new Date()),1000); return()=>clearInterval(t); },[]);
-  const isClockedIn = n => records.some(r=>r.worker===n&&!r.out);
-  const handleClock = w => {
-    const ci = isClockedIn(w.name);
-    if (!ci) setRecords(r=>[...r,{id:Date.now(),worker:w.name,in:time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),out:null,hours:null}]);
-    else setRecords(r=>r.map(x=>x.worker===w.name&&!x.out?{...x,out:time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),hours:8.0}:x));
-    setSelected(null);
+  const [records, setRecords] = useState(() => {
+    try { const s = localStorage.getItem(CLOCK_KEY); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+
+  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+
+  const saveRecords = (r) => { setRecords(r); try { localStorage.setItem(CLOCK_KEY, JSON.stringify(r)); } catch {} };
+
+  const today     = todayISO();
+  const weekBegin = weekStart();
+
+  const isClockedIn = (name) => records.some(r => r.worker === name && !r.out);
+
+  const clockIn = (w) => {
+    if (isClockedIn(w.name)) return;
+    const entry = {
+      id: Date.now(),
+      worker: w.name,
+      date: today,
+      in: time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",hour12:false}),
+      inRaw: time.toISOString(),
+      out: null, outRaw: null, hours: null,
+    };
+    saveRecords([...records, entry]);
   };
+
+  const clockOut = (w) => {
+    if (!isClockedIn(w.name)) return;
+    const outStr = time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",hour12:false});
+    const updated = records.map(r => {
+      if (r.worker === w.name && !r.out) {
+        const hrs = calcHours(r.in, outStr, r.date, today);
+        return { ...r, out: outStr, outRaw: time.toISOString(), hours: hrs };
+      }
+      return r;
+    });
+    saveRecords(updated);
+  };
+
+  // Today's records
+  const todayRecords = records.filter(r => r.date === today);
+
+  // Weekly hours per worker (Sun–Sat)
+  const weeklyHours = {};
+  records.filter(r => r.date >= weekBegin && r.hours != null).forEach(r => {
+    weeklyHours[r.worker] = (weeklyHours[r.worker] || 0) + r.hours;
+  });
+
+  // Currently active entry for a worker
+  const activeEntry = (name) => records.find(r => r.worker === name && !r.out);
+
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
       <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1, marginBottom:18 }}>CLOCK IN / OUT</h1>
+
+      {/* Live clock */}
       <Card style={{ textAlign:"center", marginBottom:20, padding:isMobile?"20px 12px":"28px" }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?48:68, color:T.orange, letterSpacing:2, lineHeight:1 }}>
           {time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
         </div>
-        <div style={{ color:T.textSec, fontSize:13, marginTop:8 }}>{time.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
-      </Card>
-      <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:20 }}>
-        <div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, letterSpacing:0.5, marginBottom:12, textTransform:"uppercase" }}>Select Worker</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {clockWorkers.filter(w=>w.active).map(w=>{
-              const ci = isClockedIn(w.name);
-              return (
-                <Card key={w.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 18px", cursor:"pointer", border:`1px solid ${selected?.id===w.id?T.orange:T.border}`, transition:"all 0.15s" }} onClick={()=>setSelected(w)}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <div style={{ width:38, height:38, borderRadius:"50%", background:ci?T.orangeDim:T.elevated, border:`2px solid ${ci?T.orange:T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:ci?T.orange:T.textDim }}>
-                      {w.name.split(" ").map(n=>n[0]).join("")}
-                    </div>
-                    <div>
-                      <div style={{ color:T.text, fontWeight:600, fontSize:14 }}>{w.name}</div>
-                      <div style={{ color:T.textSec, fontSize:12 }}>{w.role}</div>
-                    </div>
-                  </div>
-                  <Badge color={ci?"green":"yellow"}>{ci?"In":"Out"}</Badge>
-                </Card>
-              );
-            })}
-          </div>
-          {selected && (
-            <div style={{ marginTop:14 }}>
-              <Btn onClick={()=>handleClock(selected)} style={{ width:"100%" }} size="lg" variant={isClockedIn(selected.name)?"danger":"primary"}>
-                {isClockedIn(selected.name)?"⏹ Clock Out":"▶ Clock In"} — {selected.name.split(" ")[0]}
-              </Btn>
-            </div>
-          )}
+        <div style={{ color:T.textSec, fontSize:13, marginTop:8 }}>
+          {time.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}
         </div>
+        <div style={{ color:T.textDim, fontSize:11, marginTop:4, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1 }}>
+          WEEK STARTS: {weekBegin}
+        </div>
+      </Card>
+
+      {/* Worker cards with IN / OUT buttons */}
+      <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
+        {clockWorkers.filter(w=>w.active).map(w => {
+          const ci   = isClockedIn(w.name);
+          const act  = activeEntry(w.name);
+          const wkHrs = weeklyHours[w.name] || 0;
+          return (
+            <Card key={w.id} style={{ padding:"14px 16px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:ci?10:0 }}>
+                {/* Avatar */}
+                <div style={{ width:44, height:44, borderRadius:"50%", background:ci?T.orangeDim:T.elevated, border:`2px solid ${ci?T.orange:T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16, color:ci?T.orange:T.textDim, flexShrink:0 }}>
+                  {w.name.split(" ").map(n=>n[0]).join("")}
+                </div>
+                {/* Info */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ color:T.text, fontWeight:700, fontSize:15 }}>{w.name}</div>
+                  <div style={{ display:"flex", gap:8, alignItems:"center", marginTop:2, flexWrap:"wrap" }}>
+                    <Badge color={ci?"green":"yellow"}>{ci?"Clocked In":"Out"}</Badge>
+                    <span style={{ color:T.textDim, fontSize:11, fontFamily:"'Barlow Condensed',sans-serif" }}>
+                      WEEK: {wkHrs.toFixed(1)} hrs
+                    </span>
+                  </div>
+                  {ci && act && (
+                    <div style={{ color:T.green, fontSize:12, marginTop:3, fontFamily:"'Barlow Condensed',sans-serif" }}>
+                      IN since {act.in}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Two buttons */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <button
+                  onClick={() => clockIn(w)}
+                  disabled={ci}
+                  style={{ padding:"14px", borderRadius:10, border:`2px solid ${!ci?T.green:"#2E2E2E"}`, background:!ci?"rgba(34,197,94,0.12)":"rgba(255,255,255,0.03)", color:!ci?T.green:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, cursor:!ci?"pointer":"not-allowed", textTransform:"uppercase", letterSpacing:1, transition:"all 0.15s", WebkitTapHighlightColor:"transparent" }}>
+                  ▶ Clock In
+                </button>
+                <button
+                  onClick={() => clockOut(w)}
+                  disabled={!ci}
+                  style={{ padding:"14px", borderRadius:10, border:`2px solid ${ci?T.red:"#2E2E2E"}`, background:ci?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.03)", color:ci?T.red:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, cursor:ci?"pointer":"not-allowed", textTransform:"uppercase", letterSpacing:1, transition:"all 0.15s", WebkitTapHighlightColor:"transparent" }}>
+                  ⏹ Clock Out
+                </button>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Weekly summary */}
+      {Object.keys(weeklyHours).length > 0 && (
+        <Card style={{ marginBottom:20 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:13, color:T.orange, letterSpacing:1, textTransform:"uppercase", marginBottom:12 }}>
+            Weekly Hours (Sun–Sat)
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {clockWorkers.filter(w=>weeklyHours[w.name]!=null).map(w=>(
+              <div key={w.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ color:T.text, fontSize:14, fontWeight:600 }}>{w.name}</span>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  {/* progress bar */}
+                  <div style={{ width:isMobile?80:120, height:6, background:T.border, borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ width:`${Math.min(100,(weeklyHours[w.name]/40)*100)}%`, height:"100%", background:weeklyHours[w.name]>=40?T.red:T.orange, borderRadius:3, transition:"width 0.5s ease" }} />
+                  </div>
+                  <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, minWidth:52, textAlign:"right" }}>
+                    {(weeklyHours[w.name]||0).toFixed(1)} hrs
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Today's log */}
+      {todayRecords.length > 0 && (
         <div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, letterSpacing:0.5, marginBottom:12, textTransform:"uppercase" }}>Today's Log</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:13, color:T.text, letterSpacing:0.5, marginBottom:10, textTransform:"uppercase" }}>Today's Log</div>
           <Card style={{ padding:0, overflow:"hidden" }}>
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
               <thead><tr style={{ background:T.elevated }}>{["Worker","In","Out","Hrs"].map(h=>(
                 <th key={h} style={{ textAlign:"left", padding:"10px 12px", color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase" }}>{h}</th>
               ))}</tr></thead>
               <tbody>
-                {records.map(r=>(
+                {todayRecords.map(r=>(
                   <tr key={r.id} style={{ borderTop:`1px solid ${T.border}` }}>
                     <td style={{ padding:"12px", color:T.text, fontSize:13, fontWeight:600 }}>{r.worker.split(" ")[0]}</td>
                     <td style={{ padding:"12px", color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700 }}>{r.in}</td>
-                    <td style={{ padding:"12px", color:r.out?T.red:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700 }}>{r.out||<span style={{ animation:"pulse 1s infinite", fontSize:11 }}>ACTIVE</span>}</td>
-                    <td style={{ padding:"12px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800 }}>{r.hours||"—"}</td>
+                    <td style={{ padding:"12px", color:r.out?T.red:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700 }}>
+                      {r.out || <span style={{ animation:"pulse 1s infinite", fontSize:11, color:T.green }}>ACTIVE</span>}
+                    </td>
+                    <td style={{ padding:"12px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800 }}>
+                      {r.hours != null ? r.hours.toFixed(2) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </Card>
         </div>
-      </div>
+      )}
     </div>
   );
 };
+
 
 /* ─── REPORTS ────────────────────────────────────────────── */
 const Reports = () => {
