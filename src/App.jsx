@@ -399,7 +399,7 @@ const Login = ({ onLogin }) => {
 };
 
 /* ─── POS ────────────────────────────────────────────────── */
-const POS = ({ products: menuItems = MENU_ITEMS, ingredients = INVENTORY, persistIngredients }) => {
+const POS = ({ products: menuItems = MENU_ITEMS, ingredients = INVENTORY, persistIngredients, salesDay = [], persistSalesDay }) => {
   const isMobile = useIsMobile();
   const [cat, setCat] = useState("All");
   const [cart, setCart] = useState([]);
@@ -430,9 +430,21 @@ const POS = ({ products: menuItems = MENU_ITEMS, ingredients = INVENTORY, persis
   const cartCount = cart.reduce((s,x)=>s+x.qty,0);
 
   const finishOrder = () => {
-    // deduct ingredients based on cart BOM
+    // deduct ingredients
     if (persistIngredients) {
       persistIngredients(deductInventory(cart, ingredients));
+    }
+    // record sale in daily summary
+    if (persistSalesDay) {
+      const note = cart.map(i=>`${i.name}${i.qty>1?" x"+i.qty:""}`).join(", ");
+      const newEntry = {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
+        amount: grandTotal,
+        method: payMethod,
+        note,
+      };
+      persistSalesDay([...(Array.isArray(salesDay)?salesDay:[]), newEntry]);
     }
     setCardConfirm(false);
     setPayModal(false);
@@ -1330,14 +1342,32 @@ const SaleOfDay = ({ worker, salesDay, persistSalesDay, ingredients = INVENTORY,
       )}
 
       <div style={{ marginBottom:20 }}>
-        <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>SALE OF THE DAY</h1>
+        <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>MY DAY</h1>
         <p style={{ color:T.textSec, fontSize:13 }}>{todayStr}</p>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:24 }}>
-        <KPI label="Total Sales" value={`$${totalSales.toFixed(2)}`} sub={`${totalOrders} orders`} icon="💰" />
-        <KPI label="Cash" value={`$${totalCash.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="cash").length} orders`} icon="💵" color={T.green} />
-        <KPI label="Card" value={`$${totalCard.toFixed(2)}`} sub={`${orders.filter(o=>o.method==="card").length} orders`} icon="💳" color={T.blue} />
+      {/* BIG DAILY TOTAL */}
+      <div style={{ background:`linear-gradient(135deg,#1a0f00,#261500)`, border:`1px solid ${T.orange}60`, borderRadius:14, padding:isMobile?"20px 16px":"24px 28px", marginBottom:20, textAlign:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:12 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background:T.orange, animation:"pulse 1.5s infinite" }} />
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:12, color:T.orange, letterSpacing:2, textTransform:"uppercase" }}>Today's Total</span>
+        </div>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?"clamp(52px,18vw,80px)":"80px", color:T.orange, lineHeight:1, animation:"pulse 3s ease-in-out infinite" }}>
+          ${totalSales.toFixed(2)}
+        </div>
+        <div style={{ color:T.textSec, fontSize:13, marginTop:8 }}>{totalOrders} orders</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:16 }}>
+          <div style={{ background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.25)", borderRadius:10, padding:"12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>💵 Cash</div>
+            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30 }}>${totalCash.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:11 }}>{orders.filter(o=>o.method==="cash").length} orders</div>
+          </div>
+          <div style={{ background:"rgba(59,130,246,0.1)", border:"1px solid rgba(59,130,246,0.25)", borderRadius:10, padding:"12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>💳 Card</div>
+            <div style={{ color:T.blue, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30 }}>${totalCard.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:11 }}>{orders.filter(o=>o.method==="card").length} orders</div>
+          </div>
+        </div>
       </div>
 
       <Btn onClick={()=>setPayModal(true)} size="lg" style={{ width:"100%", marginBottom:20 }}>
@@ -1848,7 +1878,7 @@ export default function App() {
   const renderScreen = () => {
     switch(screen) {
       case "dashboard": return <Dashboard salesDay={salesDay||[]} />;
-      case "pos":       return <POS products={products} ingredients={ingredients} persistIngredients={persistIngredients} />;
+      case "pos":       return <POS products={products} ingredients={ingredients} persistIngredients={persistIngredients} salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
       case "products":  return <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />;
       case "ingrmgr":   return <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />;
       case "inventory": return <Inventory />;
