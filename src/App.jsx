@@ -667,7 +667,10 @@ const POS = ({ products: menuItems = MENU_ITEMS, ingredients = INVENTORY, persis
 const Dashboard = ({ salesDay = [] }) => {
   const isMobile = useIsMobile();
   const orders = Array.isArray(salesDay) ? salesDay : [];
-  const todayTotal  = orders.reduce((s,o)=>s+o.amount,0);
+  const todayGross  = orders.reduce((s,o)=>s+o.amount,0);
+  const todayNet    = todayGross / 1.0825;
+  const todayTax    = todayGross - todayNet;
+  const todayTotal  = todayGross;
   const todayCash   = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
   const todayCard   = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
   const todayStr    = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
@@ -702,6 +705,16 @@ const Dashboard = ({ salesDay = [] }) => {
             <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>Card</div>
             <div style={{ color:T.blue, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30, lineHeight:1 }}>${todayCard.toFixed(2)}</div>
             <div style={{ color:T.textDim, fontSize:11, marginTop:4 }}>{orders.filter(o=>o.method==="card").length} orders</div>
+          </div>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:10 }}>
+          <div style={{ background:"rgba(34,197,94,0.06)", border:"1px solid rgba(34,197,94,0.15)", borderRadius:8, padding:"8px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase" }}>Net Sales</div>
+            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18 }}>${todayNet.toFixed(2)}</div>
+          </div>
+          <div style={{ background:"rgba(245,158,11,0.06)", border:"1px solid rgba(245,158,11,0.15)", borderRadius:8, padding:"8px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase" }}>Tax (8.25%)</div>
+            <div style={{ color:T.yellow, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18 }}>${todayTax.toFixed(2)}</div>
           </div>
         </div>
         {orders.length > 0 && (
@@ -1230,7 +1243,10 @@ const SaleOfDay = ({ worker, salesDay, persistSalesDay, ingredients = INVENTORY,
   const todayStr = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
   const totalCash  = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
   const totalCard  = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
-  const totalSales = totalCash + totalCard;
+  const totalGross = totalCash + totalCard;               // what customer paid (inc tax)
+  const totalNet   = totalGross / 1.0825;                 // before 8.25% tax
+  const totalTax   = totalGross - totalNet;               // tax collected
+  const totalSales = totalGross;                          // alias for compatibility
   const totalOrders = orders.length;
   const change = parseFloat(cashGiven||0) - parseFloat(amount||0);
 
@@ -1347,25 +1363,46 @@ const SaleOfDay = ({ worker, salesDay, persistSalesDay, ingredients = INVENTORY,
       </div>
 
       {/* BIG DAILY TOTAL */}
-      <div style={{ background:`linear-gradient(135deg,#1a0f00,#261500)`, border:`1px solid ${T.orange}60`, borderRadius:14, padding:isMobile?"20px 16px":"24px 28px", marginBottom:20, textAlign:"center" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:12 }}>
-          <div style={{ width:8, height:8, borderRadius:"50%", background:T.orange, animation:"pulse 1.5s infinite" }} />
-          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:12, color:T.orange, letterSpacing:2, textTransform:"uppercase" }}>Today's Total</span>
+      <div style={{ background:"linear-gradient(135deg,#1a0f00,#261500)", border:`1px solid ${T.orange}60`, borderRadius:14, padding:isMobile?"16px 14px":"24px 28px", marginBottom:20 }}>
+        {/* live indicator + label */}
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background:T.orange, animation:"pulse 1.5s infinite", flexShrink:0 }} />
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:12, color:T.orange, letterSpacing:2, textTransform:"uppercase" }}>Today — {totalOrders} Orders</span>
         </div>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?"clamp(52px,18vw,80px)":"80px", color:T.orange, lineHeight:1, animation:"pulse 3s ease-in-out infinite" }}>
-          ${totalSales.toFixed(2)}
-        </div>
-        <div style={{ color:T.textSec, fontSize:13, marginTop:8 }}>{totalOrders} orders</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:16 }}>
-          <div style={{ background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.25)", borderRadius:10, padding:"12px" }}>
-            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>💵 Cash</div>
-            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30 }}>${totalCash.toFixed(2)}</div>
-            <div style={{ color:T.textDim, fontSize:11 }}>{orders.filter(o=>o.method==="cash").length} orders</div>
+
+        {/* Gross (big) */}
+        <div style={{ textAlign:"center", marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${T.border}` }}>
+          <div style={{ color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:2, textTransform:"uppercase", marginBottom:4 }}>Gross Sales (inc. tax)</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?"clamp(48px,16vw,76px)":"76px", color:T.orange, lineHeight:1 }}>
+            ${totalGross.toFixed(2)}
           </div>
-          <div style={{ background:"rgba(59,130,246,0.1)", border:"1px solid rgba(59,130,246,0.25)", borderRadius:10, padding:"12px" }}>
-            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>💳 Card</div>
-            <div style={{ color:T.blue, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30 }}>${totalCard.toFixed(2)}</div>
-            <div style={{ color:T.textDim, fontSize:11 }}>{orders.filter(o=>o.method==="card").length} orders</div>
+        </div>
+
+        {/* Net + Tax row */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+          <div style={{ background:"rgba(34,197,94,0.08)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:10, padding:"10px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase", marginBottom:3 }}>Net Sales</div>
+            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?22:26 }}>${totalNet.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:10, marginTop:2 }}>before 8.25% tax</div>
+          </div>
+          <div style={{ background:"rgba(245,158,11,0.08)", border:"1px solid rgba(245,158,11,0.2)", borderRadius:10, padding:"10px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase", marginBottom:3 }}>Tax Collected</div>
+            <div style={{ color:T.yellow, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?22:26 }}>${totalTax.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:10, marginTop:2 }}>8.25% of net</div>
+          </div>
+        </div>
+
+        {/* Cash + Card row */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <div style={{ background:"rgba(34,197,94,0.08)", border:"1px solid rgba(34,197,94,0.2)", borderRadius:10, padding:"10px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase", marginBottom:3 }}>💵 Cash</div>
+            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?22:26 }}>${totalCash.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:10, marginTop:2 }}>{orders.filter(o=>o.method==="cash").length} orders</div>
+          </div>
+          <div style={{ background:"rgba(59,130,246,0.08)", border:"1px solid rgba(59,130,246,0.2)", borderRadius:10, padding:"10px 12px" }}>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase", marginBottom:3 }}>💳 Card</div>
+            <div style={{ color:T.blue, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?22:26 }}>${totalCard.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:10, marginTop:2 }}>{orders.filter(o=>o.method==="card").length} orders</div>
           </div>
         </div>
       </div>
