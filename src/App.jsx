@@ -607,26 +607,78 @@ const POS = ({ products: menuItems = MENU_ITEMS }) => {
 };
 
 /* ─── DASHBOARD ──────────────────────────────────────────── */
-const Dashboard = () => {
+const Dashboard = ({ salesDay = [] }) => {
   const isMobile = useIsMobile();
-  const totalSales = SALES_MAPPED.reduce((s,x)=>s+x.revenue,0);
-  const avgDaily = totalSales / SALES_MAPPED.length;
-  const topDay = [...WEEK_DATA].sort((a,b)=>b.sales-a.sales)[0];
+  const orders = Array.isArray(salesDay) ? salesDay : [];
+  const todayTotal  = orders.reduce((s,o)=>s+o.amount,0);
+  const todayCash   = orders.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
+  const todayCard   = orders.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
+  const todayStr    = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+  const avgHistoric = SALES_MAPPED.length ? SALES_MAPPED.reduce((s,x)=>s+x.revenue,0)/SALES_MAPPED.length : 0;
+  const topDay      = [...WEEK_DATA].sort((a,b)=>b.sales-a.sales)[0];
+
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
       <div style={{ marginBottom:20 }}>
         <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>DASHBOARD</h1>
-        <p style={{ color:T.textSec, fontSize:13 }}>Elotes Locos LLC · El Rancho McKinney · {SALES_MAPPED.length} days of data</p>
+        <p style={{ color:T.textSec, fontSize:13 }}>Elotes Locos LLC · El Rancho McKinney · {todayStr}</p>
       </div>
+
+      {/* TODAY'S LIVE SUMMARY */}
+      <div style={{ background:`linear-gradient(135deg,#1a0f00,#261500)`, border:`1px solid ${T.orange}40`, borderRadius:12, padding:isMobile?"16px":"20px 24px", marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background:T.orange, animation:"pulse 1.5s infinite" }} />
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, color:T.orange, letterSpacing:2, textTransform:"uppercase" }}>Today's Sales — Live</span>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+          <div>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>Total</div>
+            <div style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?28:36, lineHeight:1 }}>${todayTotal.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:11, marginTop:4 }}>{orders.length} orders</div>
+          </div>
+          <div>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>Cash</div>
+            <div style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30, lineHeight:1 }}>${todayCash.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:11, marginTop:4 }}>{orders.filter(o=>o.method==="cash").length} orders</div>
+          </div>
+          <div>
+            <div style={{ color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:1, textTransform:"uppercase", marginBottom:4 }}>Card</div>
+            <div style={{ color:T.blue, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?24:30, lineHeight:1 }}>${todayCard.toFixed(2)}</div>
+            <div style={{ color:T.textDim, fontSize:11, marginTop:4 }}>{orders.filter(o=>o.method==="card").length} orders</div>
+          </div>
+        </div>
+        {orders.length > 0 && (
+          <div style={{ marginTop:16, borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:T.textDim, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Recent Orders</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:180, overflowY:"auto" }}>
+              {[...orders].reverse().slice(0,6).map((o,i)=>(
+                <div key={o.id||i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ color:T.textSec, fontSize:12 }}>{o.time} · {o.note}</span>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge>
+                    <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15 }}>${o.amount.toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {orders.length === 0 && (
+          <div style={{ marginTop:12, color:T.textDim, fontSize:13, fontFamily:"'Nunito',sans-serif" }}>No sales registered yet today — use My Day or POS to start.</div>
+        )}
+      </div>
+
+      {/* HISTORIC KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)", gap:12, marginBottom:20 }}>
-        <KPI label="Total Sales" value={`$${totalSales.toFixed(0)}`} sub={`${SALES_MAPPED.length} recorded days`} icon="💰" />
-        <KPI label="Avg/Day" value={`$${avgDaily.toFixed(0)}`} sub="From real data" icon="📅" color={T.blue} />
-        <KPI label="Best Day" value={topDay.day} sub={`Avg $${topDay.sales}/day`} icon="🔥" color={T.green} />
-        <KPI label="Products" value={MENU_ITEMS.length} sub="On menu" icon="🌽" color={T.yellow} />
+        <KPI label="Historic Avg/Day" value={`$${avgHistoric.toFixed(0)}`} sub={`${SALES_MAPPED.length} days recorded`} icon="📅" color={T.blue} />
+        <KPI label="Best Day of Week" value={topDay.day} sub={`Avg $${topDay.sales}/day`} icon="🔥" color={T.green} />
+        <KPI label="Products on Menu" value={MENU_ITEMS.length} sub="Active items" icon="🌽" color={T.yellow} />
+        <KPI label="Today vs Avg" value={avgHistoric>0?`${((todayTotal/avgHistoric)*100).toFixed(0)}%`:"—"} sub={todayTotal>=avgHistoric?"Above average":"Below average"} icon="📊" color={todayTotal>=avgHistoric?T.green:T.red} />
       </div>
+
       <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"2fr 1fr", gap:16, marginBottom:16 }}>
         <Card>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, letterSpacing:0.5, marginBottom:14, textTransform:"uppercase" }}>Avg Sales by Day of Week (Real Data)</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, letterSpacing:0.5, marginBottom:14, textTransform:"uppercase" }}>Avg Revenue by Day of Week</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={WEEK_DATA}>
               <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
@@ -657,26 +709,6 @@ const Dashboard = () => {
           </div>
         </Card>
       </div>
-      <Card style={{ padding:0, overflowX:"auto" }}>
-        <div style={{ padding:"16px 18px 10px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, textTransform:"uppercase" }}>Recent Sales (Live from DB)</div>
-        <table style={{ width:"100%", borderCollapse:"collapse", minWidth:400 }}>
-          <thead>
-            <tr>{["Date","Day","Revenue","Orders"].map(h=>(
-              <th key={h} style={{ textAlign:"left", padding:"8px 14px", color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase", borderBottom:`1px solid ${T.border}` }}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {[...SALES_MAPPED].reverse().slice(0,8).map((s,i)=>(
-              <tr key={i} style={{ borderBottom:`1px solid ${T.border}` }}>
-                <td style={{ padding:"11px 14px", color:T.textSec, fontSize:13 }}>{s.date}</td>
-                <td style={{ padding:"11px 14px" }}><Badge color={["Sat","Sun"].includes(s.day)?"orange":"yellow"}>{s.day}</Badge></td>
-                <td style={{ padding:"11px 14px", color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16 }}>${s.revenue.toFixed(2)}</td>
-                <td style={{ padding:"11px 14px", color:T.text, fontSize:13 }}>{s.orders} items</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
     </div>
   );
 };
@@ -1760,7 +1792,7 @@ export default function App() {
   // Render ONLY the active screen — avoids one broken component crashing everything
   const renderScreen = () => {
     switch(screen) {
-      case "dashboard": return <Dashboard />;
+      case "dashboard": return <Dashboard salesDay={salesDay||[]} />;
       case "pos":       return <POS products={products} />;
       case "products":  return <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />;
       case "ingrmgr":   return <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />;
