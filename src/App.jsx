@@ -340,7 +340,7 @@ const Sidebar = ({ screen, setScreen, userRole, onLogout }) => {
 };
 
 /* ─── LOGIN ──────────────────────────────────────────────── */
-const Login = ({ onLogin }) => {
+const Login = ({ onLogin, workers: workersList = WORKERS }) => {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -349,7 +349,7 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     setTimeout(() => {
       if (p === "9999") { onLogin("admin"); return; }
-      const w = WORKERS.find(x => x.pin === p);
+      const w = workersList.find(x => x.pin === p);
       if (w) { onLogin("worker", w); return; }
       setError("Invalid PIN — try again"); setPin(""); setLoading(false);
     }, 500);
@@ -936,7 +936,7 @@ const Compras = () => {
 };
 
 /* ─── CLOCK ──────────────────────────────────────────────── */
-const Clock = () => {
+const Clock = ({ workers: clockWorkers = WORKERS }) => {
   const isMobile = useIsMobile();
   const [records, setRecords] = useState(CLOCK_RECORDS);
   const [time, setTime] = useState(new Date());
@@ -962,7 +962,7 @@ const Clock = () => {
         <div>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, color:T.text, letterSpacing:0.5, marginBottom:12, textTransform:"uppercase" }}>Select Worker</div>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {WORKERS.filter(w=>w.active).map(w=>{
+            {clockWorkers.filter(w=>w.active).map(w=>{
               const ci = isClockedIn(w.name);
               return (
                 <Card key={w.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 18px", cursor:"pointer", border:`1px solid ${selected?.id===w.id?T.orange:T.border}`, transition:"all 0.15s" }} onClick={()=>setSelected(w)}>
@@ -1877,6 +1877,15 @@ export default function App() {
   const isMobile = useIsMobile();
 
   // ── shared state — safe lazy init, stale data is silently discarded ──
+  const [workers, setWorkers] = useState(() => {
+    try {
+      const s = localStorage.getItem(WORKERS_KEY);
+      const parsed = s ? JSON.parse(s) : null;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : WORKERS;
+    } catch { return WORKERS; }
+  });
+  const persistWorkers = (w) => { setWorkers(w); try{localStorage.setItem(WORKERS_KEY, JSON.stringify(w));}catch{} };
+
   const [products, setProducts] = useState(() => {
     try {
       const s = localStorage.getItem(PRODUCTS_KEY);
@@ -1909,7 +1918,7 @@ export default function App() {
     setScreen(role === "admin" ? "dashboard" : "pos");
   };
 
-  if (!auth) return <Login onLogin={handleLogin} />;
+  if (!auth) return <Login onLogin={handleLogin} workers={workers} />;
 
   // Render ONLY the active screen — avoids one broken component crashing everything
   const renderScreen = () => {
@@ -1920,9 +1929,9 @@ export default function App() {
       case "ingrmgr":   return <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />;
       case "inventory": return <Inventory />;
       case "compras":   return <Compras />;
-      case "clock":     return <Clock />;
+      case "clock":     return <Clock workers={workers} />;
       case "reports":   return <Reports />;
-      case "users":     return <Users />;
+      case "users":     return <Users workers={workers} persistWorkers={persistWorkers} />;
       case "salesmgr":  return <SalesMgr salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
       case "saleday":   return <SaleOfDay worker={auth.worker} salesDay={salesDay||[]} persistSalesDay={persistSalesDay} ingredients={ingredients} persistIngredients={persistIngredients} />;
       default:          return <Dashboard />;
