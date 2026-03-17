@@ -30,44 +30,66 @@ const T = {
 };
 
 /* ─── REAL PRODUCTS FROM ELOTESCONTROL DB ────────────────── */
+// BOM quantities in oz unless noted as "unit"
 const MENU_ITEMS = [
   // ELOTES
-  { id:1,  name:"Entero/Cob",           cat:"Elotes",  price:4.99, emoji:"🌽", stock:30,  desc:"Whole corn cob preparado" },
-  { id:2,  name:"Chico",                cat:"Elotes",  price:4.99, emoji:"🌽", stock:60,  desc:"12oz cup · corn preparado" },
-  { id:3,  name:"Grande",               cat:"Elotes",  price:6.99, emoji:"🌽", stock:55,  desc:"20oz cup · corn preparado" },
-  { id:4,  name:"Taki-Lokos",           cat:"Elotes",  price:6.99, emoji:"🔥", stock:20,  desc:"Elote + Takis Fuego" },
-  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🫓", stock:15,  desc:"Concha preparada" },
-  { id:6,  name:"Tostaditas",           cat:"Elotes",  price:6.99, emoji:"🌮", stock:20,  desc:"Tostaditas preparadas" },
+  { id:1,  name:"Entero/Cob",           cat:"Elotes",  price:4.99, emoji:"🌽", stock:30, desc:"Whole corn cob preparado",
+    bom:[{name:"Corn Cob (ears)",qty:1,unit:"unit"},{name:"Butter (lb)",qty:1,unit:"oz"},{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"},{name:"Valentina (btl)",qty:0.5,unit:"oz"}]},
+  { id:2,  name:"Chico",                cat:"Elotes",  price:4.99, emoji:"🌽", stock:60, desc:"12oz cup · corn preparado",
+    bom:[{name:"Corn grated (lb)",qty:10,unit:"oz"},{name:"Butter (lb)",qty:1,unit:"oz"},{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"},{name:"Valentina (btl)",qty:0.5,unit:"oz"}]},
+  { id:3,  name:"Grande",               cat:"Elotes",  price:6.99, emoji:"🌽", stock:55, desc:"20oz cup · corn preparado",
+    bom:[{name:"Corn grated (lb)",qty:12,unit:"oz"},{name:"Butter (lb)",qty:1,unit:"oz"},{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"},{name:"Valentina (btl)",qty:0.5,unit:"oz"}]},
+  { id:4,  name:"Taki-Lokos",           cat:"Elotes",  price:6.99, emoji:"🔥", stock:20, desc:"Elote + Takis Fuego",
+    bom:[{name:"Takis Fuego (case)",qty:1,unit:"unit"},{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"}]},
+  { id:5,  name:"Conchitas",            cat:"Elotes",  price:6.99, emoji:"🫓", stock:15, desc:"Concha preparada",
+    bom:[{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"}]},
+  { id:6,  name:"Tostaditas",           cat:"Elotes",  price:6.99, emoji:"🌮", stock:20, desc:"Tostaditas preparadas",
+    bom:[{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"}]},
   // SOPAS
-  { id:7,  name:"Sopas Preparadas",     cat:"Sopas",   price:4.99, emoji:"🍜", stock:50,  desc:"Sopas snack preparadas" },
+  { id:7,  name:"Sopas Preparadas",     cat:"Sopas",   price:4.99, emoji:"🍜", stock:50, desc:"Sopas snack preparadas",
+    bom:[{name:"Sour Cream (lb)",qty:1,unit:"oz"},{name:"Mayonnaise (qt)",qty:1,unit:"oz"},{name:"Cotija Cheese (lb)",qty:1,unit:"oz"},{name:"Valentina (btl)",qty:0.5,unit:"oz"}]},
   // CREPAS
-  { id:8,  name:"Crepa Nutella/Banana", cat:"Crepas",  price:8.00, emoji:"🥞", stock:20,  desc:"Flour, eggs, milk · Nutella, banana, whipped cream" },
-  { id:9,  name:"Crepa Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Flour, eggs, milk · strawberry, cream cheese, whipped cream" },
-  { id:10, name:"Crepa Jamon & Queso",  cat:"Crepas",  price:8.00, emoji:"🧀", stock:20,  desc:"Flour, eggs, milk · ham, shredded cheese, sour cream" },
-
+  { id:8,  name:"Crepa Nutella/Banana", cat:"Crepas",  price:8.00, emoji:"🥞", stock:20, desc:"Flour, eggs, milk · Nutella, banana, whipped cream",
+    bom:[{name:"Flour (lb)",qty:1,unit:"oz"},{name:"Nutella (jar)",qty:1,unit:"oz"},{name:"Whipped Cream (can)",qty:1,unit:"oz"}]},
+  { id:9,  name:"Crepa Fresa/Cream Cheese", cat:"Crepas", price:8.00, emoji:"🍓", stock:20, desc:"Flour, eggs, milk · strawberry, cream cheese, whipped cream",
+    bom:[{name:"Flour (lb)",qty:1,unit:"oz"},{name:"Strawberries (lb)",qty:2,unit:"oz"},{name:"Whipped Cream (can)",qty:1,unit:"oz"}]},
+  { id:10, name:"Crepa Jamon & Queso",  cat:"Crepas",  price:8.00, emoji:"🧀", stock:20, desc:"Flour, eggs, milk · ham, shredded cheese, sour cream",
+    bom:[{name:"Flour (lb)",qty:1,unit:"oz"},{name:"Sour Cream (lb)",qty:1,unit:"oz"}]},
   // BOBA TEA
-  { id:14, name:"Boba Tea Taro",        cat:"Drinks",  price:5.99, emoji:"🧋", stock:25,  desc:"Taro boba tea" },
-  { id:15, name:"Boba Tea Strawberry",  cat:"Drinks",  price:5.99, emoji:"🍓", stock:25,  desc:"Strawberry boba tea" },
-  { id:16, name:"Boba Tea Coffee",      cat:"Drinks",  price:5.99, emoji:"☕", stock:25,  desc:"Coffee boba tea" },
-  { id:17, name:"Boba Tea Tiger Milk",  cat:"Drinks",  price:5.99, emoji:"🐯", stock:25,  desc:"Tiger milk boba tea" },
+  { id:14, name:"Boba Tea Taro",        cat:"Drinks",  price:5.99, emoji:"🧋", stock:25, desc:"Taro boba tea",
+    bom:[{name:"Taro Powder (lb)",qty:1,unit:"oz"},{name:"Boba Pearls (lb)",qty:1,unit:"oz"}]},
+  { id:15, name:"Boba Tea Strawberry",  cat:"Drinks",  price:5.99, emoji:"🍓", stock:25, desc:"Strawberry boba tea",
+    bom:[{name:"Strawberries (lb)",qty:1,unit:"oz"},{name:"Boba Pearls (lb)",qty:1,unit:"oz"}]},
+  { id:16, name:"Boba Tea Coffee",      cat:"Drinks",  price:5.99, emoji:"☕", stock:25, desc:"Coffee boba tea",
+    bom:[{name:"Boba Pearls (lb)",qty:1,unit:"oz"}]},
+  { id:17, name:"Boba Tea Tiger Milk",  cat:"Drinks",  price:5.99, emoji:"🐯", stock:25, desc:"Tiger milk boba tea",
+    bom:[{name:"Boba Pearls (lb)",qty:1,unit:"oz"}]},
   // CHAMOYODAS
-  { id:18, name:"Chamoyada Mango",      cat:"Drinks",  price:6.99, emoji:"🥭", stock:40,  desc:"Frozen mango chamoyada" },
-  { id:19, name:"Chamoyada Fresa",      cat:"Drinks",  price:6.99, emoji:"🍓", stock:40,  desc:"Frozen strawberry chamoyada" },
-  { id:20, name:"Chamoyada Sandia",     cat:"Drinks",  price:6.99, emoji:"🍉", stock:40,  desc:"Watermelon chamoyada" },
-  { id:21, name:"Chamoyada Piña",       cat:"Drinks",  price:6.99, emoji:"🍍", stock:40,  desc:"Pineapple chamoyada" },
-  { id:22, name:"Chamoyada Tamarindo",  cat:"Drinks",  price:6.99, emoji:"🟤", stock:30,  desc:"Tamarindo chamoyada" },
+  { id:18, name:"Chamoyada Mango",      cat:"Drinks",  price:6.99, emoji:"🥭", stock:40, desc:"Frozen mango chamoyada",
+    bom:[{name:"Mango Frozen (lb)",qty:4,unit:"oz"},{name:"Tajin (btl)",qty:0.5,unit:"oz"}]},
+  { id:19, name:"Chamoyada Fresa",      cat:"Drinks",  price:6.99, emoji:"🍓", stock:40, desc:"Frozen strawberry chamoyada",
+    bom:[{name:"Strawberries (lb)",qty:4,unit:"oz"},{name:"Tajin (btl)",qty:0.5,unit:"oz"}]},
+  { id:20, name:"Chamoyada Sandia",     cat:"Drinks",  price:6.99, emoji:"🍉", stock:40, desc:"Watermelon chamoyada",
+    bom:[{name:"Tajin (btl)",qty:0.5,unit:"oz"}]},
+  { id:21, name:"Chamoyada Piña",       cat:"Drinks",  price:6.99, emoji:"🍍", stock:40, desc:"Pineapple chamoyada",
+    bom:[{name:"Tajin (btl)",qty:0.5,unit:"oz"}]},
+  { id:22, name:"Chamoyada Tamarindo",  cat:"Drinks",  price:6.99, emoji:"🟤", stock:30, desc:"Tamarindo chamoyada",
+    bom:[{name:"Tajin (btl)",qty:0.5,unit:"oz"}]},
   // REFRESHERS
-  { id:23, name:"Mango/Peach Dragonfruit", cat:"Drinks", price:3.99, emoji:"🐉", stock:40, desc:"Refresher" },
-  { id:24, name:"Coco Rosa",            cat:"Drinks",  price:3.99, emoji:"🥥", stock:40,  desc:"Refresher" },
-  { id:25, name:"Horchata",             cat:"Drinks",  price:3.99, emoji:"🥛", stock:40,  desc:"Refresher" },
-  { id:26, name:"Horchata Strawberry",  cat:"Drinks",  price:3.99, emoji:"🍓", stock:40,  desc:"Refresher" },
-  { id:27, name:"Horchata Cafe",        cat:"Drinks",  price:3.99, emoji:"☕", stock:40,  desc:"Refresher" },
-  { id:28, name:"Red Bull Prep",        cat:"Drinks",  price:3.99, emoji:"🐂", stock:20,  desc:"Red Bull refresher" },
-  // MALTEADAS / SMOOTHIES
-  { id:29, name:"Caramel Frapuchino",   cat:"Malteadas", price:5.99, emoji:"🍮", stock:30, desc:"Caramel, milk, whipped cream" },
-  // NIEVES / POSTRES
-  { id:30, name:"Nieves",               cat:"Postres", price:2.50, emoji:"🍧", stock:40,  desc:"Artisan ice cream" },
-  { id:31, name:"Fresas con Crema",     cat:"Postres", price:5.99, emoji:"🍰", stock:25,  desc:"Fresh strawberries with cream" },
+  { id:23, name:"Mango/Peach Dragonfruit", cat:"Drinks", price:3.99, emoji:"🐉", stock:40, desc:"Refresher", bom:[] },
+  { id:24, name:"Coco Rosa",            cat:"Drinks",  price:3.99, emoji:"🥥", stock:40, desc:"Refresher", bom:[] },
+  { id:25, name:"Horchata",             cat:"Drinks",  price:3.99, emoji:"🥛", stock:40, desc:"Refresher", bom:[] },
+  { id:26, name:"Horchata Strawberry",  cat:"Drinks",  price:3.99, emoji:"🍓", stock:40, desc:"Refresher",
+    bom:[{name:"Strawberries (lb)",qty:1,unit:"oz"}]},
+  { id:27, name:"Horchata Cafe",        cat:"Drinks",  price:3.99, emoji:"☕", stock:40, desc:"Refresher", bom:[] },
+  { id:28, name:"Red Bull Prep",        cat:"Drinks",  price:3.99, emoji:"🐂", stock:20, desc:"Red Bull refresher", bom:[] },
+  // MALTEADAS
+  { id:29, name:"Caramel Frapuchino",   cat:"Malteadas", price:5.99, emoji:"🍮", stock:30, desc:"Caramel, milk, whipped cream",
+    bom:[{name:"Whipped Cream (can)",qty:1,unit:"oz"}]},
+  // POSTRES
+  { id:30, name:"Nieves",               cat:"Postres", price:2.50, emoji:"🍧", stock:40, desc:"Artisan ice cream", bom:[] },
+  { id:31, name:"Fresas con Crema",     cat:"Postres", price:5.99, emoji:"🍰", stock:25, desc:"Fresh strawberries with cream",
+    bom:[{name:"Strawberries (lb)",qty:3,unit:"oz"}]},
 ];
 
 const CATEGORIES = ["All","Elotes","Sopas","Crepas","Drinks","Malteadas","Postres"];
@@ -149,6 +171,25 @@ const INVENTORY = [
   { id:13, item:"Taro Powder (lb)",      unit:"lb",   stock:2,   minStock:2,  cost:7.72, supplier:"AsianGrocer" },
   { id:14, item:"Whipped Cream (can)",   unit:"can",  stock:5,   minStock:3,  cost:4.46, supplier:"Sysco" },
 ];
+
+// Deduct ingredient stock based on cart items' BOM
+const deductInventory = (cartItems, currentIngredients) => {
+  const updated = currentIngredients.map(ing => ({ ...ing }));
+  cartItems.forEach(cartItem => {
+    const bom = cartItem.bom || [];
+    bom.forEach(bomLine => {
+      const idx = updated.findIndex(i =>
+        i.item.toLowerCase().includes(bomLine.name.toLowerCase().split(" ")[0]) ||
+        bomLine.name.toLowerCase().includes(i.item.toLowerCase().split(" ")[0])
+      );
+      if (idx !== -1) {
+        const deduct = (bomLine.qty || 1) * (cartItem.qty || 1);
+        updated[idx] = { ...updated[idx], stock: Math.max(0, (updated[idx].stock || 0) - deduct) };
+      }
+    });
+  });
+  return updated;
+};
 
 const COMPRAS = [
   { id:1, date:"2026-03-14", supplier:"Sysco",      items:"Nutella x6, Sour Cream x10lb",  total:114.80, status:"Received" },
@@ -358,7 +399,7 @@ const Login = ({ onLogin }) => {
 };
 
 /* ─── POS ────────────────────────────────────────────────── */
-const POS = ({ products: menuItems = MENU_ITEMS }) => {
+const POS = ({ products: menuItems = MENU_ITEMS, ingredients = INVENTORY, persistIngredients }) => {
   const isMobile = useIsMobile();
   const [cat, setCat] = useState("All");
   const [cart, setCart] = useState([]);
@@ -389,6 +430,10 @@ const POS = ({ products: menuItems = MENU_ITEMS }) => {
   const cartCount = cart.reduce((s,x)=>s+x.qty,0);
 
   const finishOrder = () => {
+    // deduct ingredients based on cart BOM
+    if (persistIngredients) {
+      persistIngredients(deductInventory(cart, ingredients));
+    }
     setCardConfirm(false);
     setPayModal(false);
     setShowCart(false);
@@ -1154,7 +1199,7 @@ const Users = () => {
 };
 
 /* ─── SALE OF THE DAY ────────────────────────────────────── */
-const SaleOfDay = ({ worker, salesDay, persistSalesDay }) => {
+const SaleOfDay = ({ worker, salesDay, persistSalesDay, ingredients = INVENTORY, persistIngredients }) => {
   const isMobile = useIsMobile();
   const orders = Array.isArray(salesDay) ? salesDay : [];
   const setOrders = persistSalesDay;
@@ -1179,6 +1224,16 @@ const SaleOfDay = ({ worker, salesDay, persistSalesDay }) => {
 
   const commitSale = (method) => {
     const amt = parseFloat(amount);
+    // Try to match note to a product and deduct its BOM
+    if (persistIngredients && note && note !== "—") {
+      const matched = MENU_ITEMS.filter(m =>
+        note.toLowerCase().includes(m.name.toLowerCase().split("/")[0].trim().toLowerCase()) ||
+        note.toLowerCase().includes(m.name.toLowerCase().split(" ")[0].toLowerCase())
+      );
+      if (matched.length > 0) {
+        persistIngredients(deductInventory(matched.map(m=>({...m,qty:1})), ingredients));
+      }
+    }
     setOrders([...orders, {
       id: Date.now(),
       time: new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
@@ -1793,7 +1848,7 @@ export default function App() {
   const renderScreen = () => {
     switch(screen) {
       case "dashboard": return <Dashboard salesDay={salesDay||[]} />;
-      case "pos":       return <POS products={products} />;
+      case "pos":       return <POS products={products} ingredients={ingredients} persistIngredients={persistIngredients} />;
       case "products":  return <ProductsMgr products={products} persistProducts={persistProducts} ingredients={ingredients} />;
       case "ingrmgr":   return <IngrMgr ingredients={ingredients} persistIngredients={persistIngredients} />;
       case "inventory": return <Inventory />;
@@ -1802,7 +1857,7 @@ export default function App() {
       case "reports":   return <Reports />;
       case "users":     return <Users />;
       case "salesmgr":  return <SalesMgr salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
-      case "saleday":   return <SaleOfDay worker={auth.worker} salesDay={salesDay||[]} persistSalesDay={persistSalesDay} />;
+      case "saleday":   return <SaleOfDay worker={auth.worker} salesDay={salesDay||[]} persistSalesDay={persistSalesDay} ingredients={ingredients} persistIngredients={persistIngredients} />;
       default:          return <Dashboard />;
     }
   };
