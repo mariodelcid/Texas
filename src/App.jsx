@@ -1884,106 +1884,159 @@ const IngrMgr = ({ ingredients, persistIngredients }) => {
 /* ─── SALES MANAGER (ADMIN) ──────────────────────────────── */
 const SalesMgr = ({ salesDay, persistSalesDay }) => {
   const isMobile = useIsMobile();
-  const [editModal, setEditModal] = useState(null);
-  const [delConfirm, setDelConfirm] = useState(null);
+  const [expandedId, setExpandedId] = useState(null); // inline edit
   const [form, setForm] = useState({ amount:"", method:"cash", note:"" });
+  const [delConfirm, setDelConfirm] = useState(null);
 
   const safeDay = Array.isArray(salesDay) ? salesDay : [];
+  const totalGross = safeDay.reduce((s,o)=>s+o.amount,0);
+  const totalNet   = totalGross / 1.0825;
+  const totalTax   = totalGross - totalNet;
   const totalCash  = safeDay.filter(o=>o.method==="cash").reduce((s,o)=>s+o.amount,0);
   const totalCard  = safeDay.filter(o=>o.method==="card").reduce((s,o)=>s+o.amount,0);
-  const totalSales = totalCash + totalCard;
 
-  const saveEdit = () => {
-    persistSalesDay(safeDay.map(o => o.id===editModal.id
+  const openEdit = (o) => {
+    setExpandedId(o.id);
+    setForm({ amount: String(o.amount), method: o.method, note: o.note||"" });
+  };
+
+  const saveEdit = (id) => {
+    persistSalesDay(safeDay.map(o => o.id===id
       ? { ...o, amount:parseFloat(form.amount)||0, method:form.method, note:form.note }
       : o
     ));
-    setEditModal(null);
+    setExpandedId(null);
   };
-  const del = (id) => { persistSalesDay(safeDay.filter(o=>o.id!==id)); setDelConfirm(null); };
+
+  const del = (id) => { persistSalesDay(safeDay.filter(o=>o.id!==id)); setDelConfirm(null); setExpandedId(null); };
 
   return (
     <div style={{ padding:isMobile?12:28, fontFamily:"'Nunito',sans-serif", animation:"fadeIn 0.4s ease", paddingBottom:isMobile?80:28 }}>
       <div style={{ marginBottom:20 }}>
         <h1 style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:isMobile?26:32, color:T.text, letterSpacing:1 }}>SALES MANAGER</h1>
-        <p style={{ color:T.textSec, fontSize:13 }}>Edit or delete individual sales entries for today</p>
+        <p style={{ color:T.textSec, fontSize:13 }}>Tap any sale to edit or delete it · {safeDay.length} transactions today</p>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
-        <KPI label="Total" value={`$${totalSales.toFixed(2)}`} sub={`${salesDay.length} orders`} icon="💰" />
-        <KPI label="Cash"  value={`$${totalCash.toFixed(2)}`} icon="💵" color={T.green} />
-        <KPI label="Card"  value={`$${totalCard.toFixed(2)}`} icon="💳" color={T.blue} />
+
+      {/* KPIs */}
+      <div style={{ display:"grid", gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(5,1fr)", gap:10, marginBottom:20 }}>
+        <KPI label="Gross" value={`$${totalGross.toFixed(2)}`} sub={`${safeDay.length} orders`} icon="💰" />
+        <KPI label="Net"   value={`$${totalNet.toFixed(2)}`}   sub="pre-tax" icon="📊" color={T.green} />
+        <KPI label="Tax"   value={`$${totalTax.toFixed(2)}`}   sub="8.25%"   icon="🏛️" color={T.yellow} />
+        <KPI label="Cash"  value={`$${totalCash.toFixed(2)}`}  icon="💵" color={T.green} />
+        <KPI label="Card"  value={`$${totalCard.toFixed(2)}`}  icon="💳" color={T.blue} />
       </div>
+
       {safeDay.length === 0 ? (
         <Card style={{ textAlign:"center", padding:40 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🗃️</div>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", color:T.textDim, letterSpacing:1, fontSize:16 }}>NO SALES TODAY</div>
+          <div style={{ color:T.textDim, fontSize:12, marginTop:8 }}>Sales from POS or My Day will appear here</div>
         </Card>
       ) : (
-        <Card style={{ padding:0, overflow:"hidden" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead>
-              <tr style={{ background:T.elevated }}>
-                {["#","Time","Amount","Method","Note",""].map(h=>(
-                  <th key={h} style={{ textAlign:"left",padding:"9px 14px",color:T.textDim,fontFamily:"'Barlow Condensed',sans-serif",fontSize:10,letterSpacing:1,textTransform:"uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...safeDay].reverse().map((o,i)=>(
-                <tr key={o.id} style={{ borderTop:`1px solid ${T.border}` }}>
-                  <td style={{ padding:"11px 14px",color:T.textDim,fontSize:12 }}>{safeDay.length-i}</td>
-                  <td style={{ padding:"11px 14px",color:T.textSec,fontSize:13 }}>{o.time}</td>
-                  <td style={{ padding:"11px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16 }}>${o.amount.toFixed(2)}</td>
-                  <td style={{ padding:"11px 14px" }}><Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge></td>
-                  <td style={{ padding:"11px 14px",color:T.textSec,fontSize:13 }}>{o.note}</td>
-                  <td style={{ padding:"11px 14px" }}>
-                    <div style={{ display:"flex",gap:6 }}>
-                      <Btn size="sm" variant="ghost" onClick={()=>{ setForm({amount:String(o.amount),method:o.method,note:o.note}); setEditModal(o); }}>Edit</Btn>
-                      <Btn size="sm" variant="danger" onClick={()=>setDelConfirm(o)}>Del</Btn>
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {[...safeDay].reverse().map((o, i) => {
+            const isOpen = expandedId === o.id;
+            const net = o.amount / 1.0825;
+            const tax = o.amount - net;
+            return (
+              <div key={o.id} style={{ background:T.card, border:`1px solid ${isOpen?T.orange:T.border}`, borderRadius:12, overflow:"hidden", transition:"border-color 0.15s" }}>
+                {/* Row — tap to expand */}
+                <div
+                  onClick={() => isOpen ? setExpandedId(null) : openEdit(o)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
+                  <div style={{ width:32, height:32, borderRadius:"50%", background:T.elevated, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, color:T.textSec, flexShrink:0 }}>
+                    {safeDay.length - i}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                      <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20 }}>${o.amount.toFixed(2)}</span>
+                      <Badge color={o.method==="card"?"blue":"green"}>{o.method}</Badge>
+                      <span style={{ color:T.textDim, fontSize:11 }}>{o.time}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background:T.elevated, borderTop:`2px solid ${T.border}` }}>
-                <td colSpan={2} style={{ padding:"12px 14px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:T.text,textTransform:"uppercase" }}>Total</td>
-                <td style={{ padding:"12px 14px",color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18 }}>${totalSales.toFixed(2)}</td>
-                <td colSpan={3} />
-              </tr>
-            </tfoot>
-          </table>
-        </Card>
-      )}
-      {editModal && (
-        <Modal onClose={()=>setEditModal(null)}>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:16 }}>EDIT SALE</div>
-          <Input label="Amount ($)" type="number" value={form.amount} onChange={v=>setForm(f=>({...f,amount:v}))} />
-          <div style={{ display:"flex",gap:10,marginBottom:16 }}>
-            {["cash","card"].map(m=>(
-              <button key={m} onClick={()=>setForm(f=>({...f,method:m}))}
-                style={{ flex:1,padding:"12px",borderRadius:8,border:`2px solid ${form.method===m?T.orange:T.border}`,background:form.method===m?T.orangeDim:T.elevated,color:form.method===m?T.orange:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>
-                {m==="cash"?"💵 Cash":"💳 Card"}
-              </button>
-            ))}
+                    <div style={{ color:T.textSec, fontSize:12, marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{o.note || "—"}</div>
+                  </div>
+                  <span style={{ color:T.textDim, fontSize:18, transition:"transform 0.2s", transform:isOpen?"rotate(180deg)":"none" }}>⌄</span>
+                </div>
+
+                {/* Inline edit panel */}
+                {isOpen && (
+                  <div style={{ borderTop:`1px solid ${T.border}`, padding:"16px 16px 18px", background:T.elevated, animation:"fadeIn 0.2s ease" }}>
+                    {/* Net/Tax breakdown */}
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:16 }}>
+                      {[["Gross", `$${o.amount.toFixed(2)}`, T.orange],
+                        ["Net",   `$${net.toFixed(2)}`,      T.green],
+                        ["Tax",   `$${tax.toFixed(2)}`,      T.yellow]].map(([l,v,c])=>(
+                        <div key={l} style={{ background:T.card, borderRadius:8, padding:"8px 10px", textAlign:"center" }}>
+                          <div style={{ color:T.textDim, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:1, textTransform:"uppercase" }}>{l}</div>
+                          <div style={{ color:c, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16 }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Edit fields */}
+                    <div style={{ marginBottom:12 }}>
+                      <label style={{ display:"block", color:T.textSec, fontSize:11, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, textTransform:"uppercase", marginBottom:5 }}>Amount ($)</label>
+                      <input type="number" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}
+                        style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`, borderRadius:6, padding:"10px 14px", color:T.text, fontSize:16, fontFamily:"'Nunito',sans-serif", outline:"none" }} />
+                    </div>
+                    <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+                      {["cash","card"].map(m=>(
+                        <button key={m} onClick={()=>setForm(f=>({...f,method:m}))}
+                          style={{ flex:1, padding:"12px", borderRadius:8, border:`2px solid ${form.method===m?T.orange:T.border}`, background:form.method===m?T.orangeDim:T.card, color:form.method===m?T.orange:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:15, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                          {m==="cash"?"💵 Cash":"💳 Card"}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginBottom:14 }}>
+                      <label style={{ display:"block", color:T.textSec, fontSize:11, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, textTransform:"uppercase", marginBottom:5 }}>Note</label>
+                      <input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}
+                        style={{ width:"100%", background:T.card, border:`1px solid ${T.border}`, borderRadius:6, padding:"10px 14px", color:T.text, fontSize:14, fontFamily:"'Nunito',sans-serif", outline:"none" }} />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                      <button onClick={()=>setExpandedId(null)}
+                        style={{ padding:"12px", borderRadius:8, border:`1px solid ${T.border}`, background:"transparent", color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                        Cancel
+                      </button>
+                      <button onClick={()=>saveEdit(o.id)}
+                        style={{ padding:"12px", borderRadius:8, border:"none", background:T.orange, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                        ✓ Save
+                      </button>
+                      <button onClick={()=>setDelConfirm(o)}
+                        style={{ padding:"12px", borderRadius:8, border:`1px solid ${T.red}`, background:"rgba(239,68,68,0.1)", color:T.red, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, cursor:"pointer", textTransform:"uppercase", WebkitTapHighlightColor:"transparent" }}>
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Running total footer */}
+          <div style={{ background:T.elevated, border:`1px solid ${T.border}`, borderRadius:12, padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:T.text, textTransform:"uppercase" }}>Day Total</span>
+            <div style={{ display:"flex", gap:16, alignItems:"center" }}>
+              <span style={{ color:T.green, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13 }}>Net ${totalNet.toFixed(2)}</span>
+              <span style={{ color:T.yellow, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13 }}>Tax ${totalTax.toFixed(2)}</span>
+              <span style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22 }}>${totalGross.toFixed(2)}</span>
+            </div>
           </div>
-          <Input label="Note" value={form.note} onChange={v=>setForm(f=>({...f,note:v}))} />
-          <div style={{ display:"flex",gap:10,marginTop:4 }}>
-            <Btn onClick={()=>setEditModal(null)} variant="dark" style={{ flex:1 }}>Cancel</Btn>
-            <Btn onClick={saveEdit} style={{ flex:2 }}>Save Changes</Btn>
-          </div>
-        </Modal>
+        </div>
       )}
+
+      {/* Delete confirmation */}
       {delConfirm && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:20 }}>
-          <div style={{ background:T.card,border:`2px solid ${T.red}`,borderRadius:16,padding:"28px 24px",width:"100%",maxWidth:340,textAlign:"center",animation:"scaleIn 0.2s ease" }}>
-            <div style={{ fontSize:36,marginBottom:10 }}>🗑️</div>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:20,color:T.text,marginBottom:8 }}>DELETE SALE?</div>
-            <div style={{ color:T.orange,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,marginBottom:6 }}>${delConfirm.amount.toFixed(2)}</div>
-            <div style={{ color:T.textSec,fontSize:13,marginBottom:18 }}>{delConfirm.time} · {delConfirm.note}</div>
-            <div style={{ display:"flex",gap:10 }}>
-              <button onClick={()=>setDelConfirm(null)} style={{ flex:1,padding:"14px",borderRadius:10,border:`2px solid ${T.border}`,background:T.elevated,color:T.textSec,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Cancel</button>
-              <button onClick={()=>del(delConfirm.id)} style={{ flex:2,padding:"14px",borderRadius:10,border:"none",background:T.red,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,cursor:"pointer",textTransform:"uppercase" }}>Delete</button>
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, padding:20 }}>
+          <div style={{ background:T.card, border:`2px solid ${T.red}`, borderRadius:16, padding:"28px 24px", width:"100%", maxWidth:340, textAlign:"center", animation:"scaleIn 0.2s ease" }}>
+            <div style={{ fontSize:36, marginBottom:10 }}>🗑️</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20, color:T.text, marginBottom:8 }}>DELETE SALE?</div>
+            <div style={{ color:T.orange, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:26, marginBottom:4 }}>${delConfirm.amount.toFixed(2)}</div>
+            <div style={{ color:T.textSec, fontSize:13, marginBottom:18 }}>{delConfirm.time} · {delConfirm.note}</div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={()=>setDelConfirm(null)} style={{ flex:1, padding:"14px", borderRadius:10, border:`2px solid ${T.border}`, background:T.elevated, color:T.textSec, fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:15, cursor:"pointer", textTransform:"uppercase" }}>Cancel</button>
+              <button onClick={()=>del(delConfirm.id)} style={{ flex:2, padding:"14px", borderRadius:10, border:"none", background:T.red, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, cursor:"pointer", textTransform:"uppercase" }}>Yes, Delete</button>
             </div>
           </div>
         </div>
